@@ -34,7 +34,7 @@ jobs:
         run: |
           python -m pip install --quiet uv
           uv tool install "$ENGINE"
-          uv tool install mkdocs-material
+          uv tool install mkdocs --with mkdocs-material
       - name: Clone the public sources, as GitHub has them
         run: |
           mkdir -p _build/src
