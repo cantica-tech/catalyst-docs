@@ -1,0 +1,60 @@
+# catalyst's public documentation site (catalyst-kb-engine's design 01, phase 5). Its pages are generated in CI by
+# catalyst-kb-engine's `site` into _pages/ from the public build (never committed), and published to GitHub Pages
+# through Actions: .github/workflows/pages.yml.
+site_name: catalyst
+site_url: https://cantica-tech.github.io/catalyst-docs/
+site_description: catalyst's documentation — persistent, checkable memory for software built with AI coding agents.
+repo_url: https://github.com/cantica-tech/catalyst
+repo_name: cantica-tech/catalyst
+docs_dir: _pages
+site_dir: _site
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/weather-night
+        name: Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/weather-sunny
+        name: Light mode
+plugins:
+  - search
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.superfences
+  - pymdownx.highlight
+validation:
+  links:
+    not_found: info
+    unrecognized_links: info
+  omitted_files: info
+nav:
+  - Home: index.md
+  - Guide:
+      - guide/01-what-catalyst-is.md
+      - guide/02-getting-started.md
+      - guide/03-the-ten-laws.md
+      - guide/04-rules-domains-and-the-criterion.md
+      - guide/05-working-day-to-day.md
+      - guide/06-people-roles-and-signing.md
+      - guide/07-working-together.md
+      - guide/08-keeping-catalyst-up-to-date.md
+      - guide/09-modules.md
+      - guide/10-knowledge-bases.md
+      - guide/11-analysing-existing-code.md
+      - guide/12-the-studio-and-the-editor.md
+  - Reference: reference/index.md

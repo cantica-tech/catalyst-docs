@@ -1,0 +1,79 @@
+# The public site (catalyst-kb-engine's design 01, phase 5; eng-PUBLISH-000001, eng-PUBLISH-000002): built from
+# GitHub's commits of the public sources site/sources.json names and the guide in docs/guide, checked so nothing in
+# it comes from a private source, and deployed as a Pages artifact: no branch keeps the site.
+name: Pages
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 5 * * *" # daily: the reference follows its repositories
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  ENGINE: "catalyst-kb-engine @ git+https://github.com/cantica-tech/catalyst-kb-engine@0.8.0"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install the engine and MkDocs Material
+        run: |
+          python -m pip install --quiet uv
+          uv tool install "$ENGINE"
+          uv tool install mkdocs-material
+      - name: Clone the public sources, as GitHub has them
+        run: |
+          mkdir -p _build/src
+          python - <<'PY'
+          import json, subprocess
+          for source in json.load(open("site/sources.json"))["sources"]:
+              url = source["location"] + ".git"
+              name = source["location"].rstrip("/").split("/")[-1]
+              subprocess.run(["git", "clone", "--quiet", "--depth", "1", url, f"_build/src/{name}"], check=True)
+          PY
+      - name: Read the public sources (each visibility re-checked on GitHub)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          KB=$(python -c 'import json; print(json.load(open("site/sources.json"))["knowledge_base"])')
+          catalyst-kb-engine read-sources "$KB" _build/staging --sources site/sources.json \
+            --projects-dir _build/src --public-only
+          cp -R docs/guide _build/staging/docs/guide
+          catalyst-kb-engine build-folders _build/staging _build/public --kb "$KB" --version "${GITHUB_SHA::12}" \
+            --floor Public --ceiling Public --content-commit "$GITHUB_SHA"
+      - name: The publication check
+        run: catalyst-kb-engine publish-check _build/public --sources site/sources.json
+      - name: Make the site
+        run: |
+          catalyst-kb-engine site _build/public _pages --title "catalyst" \
+            --intro "catalyst is a persistent, checkable memory for software built with AI coding agents: documented rules, work that traces to them, and a journal of every change, checked by a command line rather than trusted. Start with the guide; the reference holds every document of catalyst's public repositories."
+          cp _build/public/manifest.json _pages/manifest.json
+          mkdocs build
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
