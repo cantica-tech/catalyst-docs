@@ -35,8 +35,7 @@ the realm build reads every source and is kept in private storage. Embedding run
 | `catalyst-users` | Repository | Public | yes | yes |
 | `catalyst-ui` | Repository | Public | yes | yes |
 | `standards` | Repository | Public | yes | yes |
-| `catalyst-users-kb` | Repository | Private | **never** | yes |
-| six criteria of the fleet | Criterion | Private | **never** | yes |
+| five criteria of the fleet | Criterion | Private | **never** | yes |
 
 ## Contents
 

@@ -1,0 +1,64 @@
+{
+  "format": "kbm-sources/1",
+  "knowledge_base": "KB-000002-erFhHt6m",
+  "classification": "Public",
+  "default_classification": "Internal",
+  "sources": [
+    {
+      "id": "KSOURCE-000001-erFhHt6m",
+      "title": "catalyst (repository)",
+      "location": "https://github.com/cantica-tech/catalyst",
+      "kind": "Repository",
+      "visibility": "Public",
+      "classification": "Public"
+    },
+    {
+      "id": "KSOURCE-000002-erFhHt6m",
+      "title": "catalyst-software-engineering (repository)",
+      "location": "https://github.com/cantica-tech/catalyst-software-engineering",
+      "kind": "Repository",
+      "visibility": "Public",
+      "classification": "Public"
+    },
+    {
+      "id": "KSOURCE-000003-erFhHt6m",
+      "title": "catalyst-knowledge-base (repository)",
+      "location": "https://github.com/cantica-tech/catalyst-knowledge-base",
+      "kind": "Repository",
+      "visibility": "Public",
+      "classification": "Public"
+    },
+    {
+      "id": "KSOURCE-000004-erFhHt6m",
+      "title": "catalyst-kb-engine (repository)",
+      "location": "https://github.com/cantica-tech/catalyst-kb-engine",
+      "kind": "Repository",
+      "visibility": "Public",
+      "classification": "Public"
+    },
+    {
+      "id": "KSOURCE-000005-erFhHt6m",
+      "title": "catalyst-users (repository)",
+      "location": "https://github.com/cantica-tech/catalyst-users",
+      "kind": "Repository",
+      "visibility": "Public",
+      "classification": "Public"
+    },
+    {
+      "id": "KSOURCE-000006-erFhHt6m",
+      "title": "catalyst-ui (repository)",
+      "location": "https://github.com/cantica-tech/catalyst-ui",
+      "kind": "Repository",
+      "visibility": "Public",
+      "classification": "Public"
+    },
+    {
+      "id": "KSOURCE-000007-erFhHt6m",
+      "title": "standards (repository)",
+      "location": "https://github.com/cantica-tech/standards",
+      "kind": "Repository",
+      "visibility": "Public",
+      "classification": "Public"
+    }
+  ]
+}
