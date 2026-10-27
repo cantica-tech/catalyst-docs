@@ -20,7 +20,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  ENGINE: "catalyst-kb-engine @ git+https://github.com/cantica-tech/catalyst-kb-engine@0.8.0"
+  ENGINE: "catalyst-kb-engine @ git+https://github.com/cantica-tech/catalyst-kb-engine@0.12.0"
 
 jobs:
   build:
