@@ -1,6 +1,8 @@
 # The public site (catalyst-kb-engine's design 01, phase 5; eng-PUBLISH-000001, eng-PUBLISH-000002): built from
 # GitHub's commits of the public sources site/sources.json names and the guide in docs/guide, checked so nothing in
-# it comes from a private source, and deployed as a Pages artifact: no branch keeps the site.
+# it comes from a private source, and deployed as a Pages artifact: no branch keeps the site. Beside the pages, the
+# same documents as a vector database (vectors/catalyst-vectors.tar.gz), embedded locally with Ollama's
+# nomic-embed-text, each run reusing the vectors of the one the site last served.
 name: Pages
 
 on:
@@ -20,7 +22,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  ENGINE: "catalyst-kb-engine @ git+https://github.com/cantica-tech/catalyst-kb-engine@0.12.0"
+  ENGINE: "catalyst-kb-engine[vectors,openai] @ git+https://github.com/cantica-tech/catalyst-kb-engine@0.12.0"
 
 jobs:
   build:
@@ -57,11 +59,35 @@ jobs:
             --floor Public --ceiling Public --content-commit "$GITHUB_SHA"
       - name: The publication check
         run: catalyst-kb-engine publish-check _build/public --sources site/sources.json
+      - name: Install Ollama and the embedding model
+        run: |
+          curl -fsSL https://ollama.com/install.sh | sh
+          curl -fsS http://localhost:11434/api/version || { ollama serve >/tmp/ollama.log 2>&1 & sleep 5; }
+          ollama pull nomic-embed-text
+      - name: The vector database, reusing the vectors the site last served
+        env:
+          OLLAMA_BASE_URL: http://localhost:11434/v1
+        run: |
+          KB=$(python -c 'import json; print(json.load(open("site/sources.json"))["knowledge_base"])')
+          PREVIOUS=()
+          mkdir -p _build/previous
+          if curl -fsSL https://cantica-tech.github.io/catalyst-docs/vectors/catalyst-vectors.tar.gz \
+              | tar -xz -C _build/previous; then
+            PREVIOUS=(--previous _build/previous/catalyst-vectors)
+          fi
+          catalyst-kb-engine build-vectors _build/staging _build/vectors/catalyst-vectors --kb "$KB" \
+            --version "${GITHUB_SHA::12}" --floor Public --ceiling Public --hosted-up-to "Local only" \
+            --local-model ollama:nomic-embed-text --document-prefix "search_document: " \
+            --query-prefix "search_query: " --content-commit "$GITHUB_SHA" "${PREVIOUS[@]}"
+          catalyst-kb-engine publish-check _build/vectors/catalyst-vectors --sources site/sources.json
       - name: Make the site
         run: |
           catalyst-kb-engine site _build/public _pages --title "catalyst" \
-            --intro "catalyst is a persistent, checkable memory for software built with AI coding agents: documented rules, work that traces to them, and a journal of every change, checked by a command line rather than trusted. Start with the guide; the reference holds every document of catalyst's public repositories."
+            --intro "catalyst is a persistent, checkable memory for software built with AI coding agents: documented rules, work that traces to them, and a journal of every change, checked by a command line rather than trusted. Start with the guide; the reference holds every document of catalyst's public repositories. The same documents, as a vector database for your own tools, are [catalyst-vectors.tar.gz](vectors/catalyst-vectors.tar.gz): its README says how to search it."
           cp _build/public/manifest.json _pages/manifest.json
+          mkdir -p _pages/vectors
+          tar -czf _pages/vectors/catalyst-vectors.tar.gz -C _build/vectors catalyst-vectors
+          cp _build/vectors/catalyst-vectors/manifest.json _pages/vectors/manifest.json
           mkdocs build
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
