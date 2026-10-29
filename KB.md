@@ -8,7 +8,7 @@
 | **Hosted embedding up to** | Local only (`nomic-embed-text`) |
 | **Basis** | Documents |
 | **Document base** | Dynamic |
-| **Target** | Vector database (the realm build); Folders (the public build) |
+| **Target** | Vector database (the realm build); Folders and Vector database (the public build) |
 | **Curator** | Olivier Steck |
 
 catalyst's central documentation, in depth: the kernel, its modules, the engine, catalyst-users, catalyst-ui and the
