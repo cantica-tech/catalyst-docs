@@ -35,7 +35,11 @@ markdown_extensions:
   - tables
   - toc:
       permalink: true
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.highlight
 validation:
   links:
@@ -57,4 +61,15 @@ nav:
       - guide/10-knowledge-bases.md
       - guide/11-analysing-existing-code.md
       - guide/12-the-studio-and-the-editor.md
+  - Technical manual:
+      - guide/manual/00-overview-and-runbook.md
+      - guide/manual/10-architecture-kernel.md
+      - guide/manual/20-deploy-kernel.md
+      - guide/manual/30-cli-catalyst.md
+      - guide/manual/40-modules.md
+      - guide/manual/50-identity-users-mcp.md
+      - guide/manual/60-knowledge-base-stack.md
+      - guide/manual/70-catalyst-ui.md
+      - guide/manual/80-oddities.md
+      - guide/manual/90-next-steps.md
   - Reference: reference/index.md

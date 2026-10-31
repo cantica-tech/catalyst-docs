@@ -2,3 +2,6 @@
 _pages/
 _site/
 _build/
+
+# The criteria knowledge base: private builds of every catalyst criterion, for review; never committed.
+docs/kb/
