@@ -69,6 +69,7 @@ nav:
       - guide/manual/40-modules.md
       - guide/manual/50-identity-users-mcp.md
       - guide/manual/60-knowledge-base-stack.md
+      - guide/manual/65-kb-vector-generation.md
       - guide/manual/70-catalyst-ui.md
       - guide/manual/80-oddities.md
       - guide/manual/90-next-steps.md
