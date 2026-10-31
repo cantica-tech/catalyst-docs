@@ -1,0 +1,19 @@
+# cantica-tech code standards (https://github.com/cantica-tech/standards): the repository's copy of the
+# standards is in sync, and its Markdown, YAML and workflows pass `task lint`, exactly as they do locally
+# (`task --taskfile ../standards/Taskfile.standards.yml --dir . standards:lint`). No Python here: no type check.
+name: Standards
+
+on:
+  pull_request:
+  push:
+    branches: [development, main]
+
+permissions:
+  contents: read
+
+jobs:
+  standards:
+    uses: cantica-tech/standards/.github/workflows/lint.yml@94739dc1d0708f72c8526d39fa7337d544511941 # v0.1.2
+    with:
+      ref: v0.1.2
+      typecheck: false

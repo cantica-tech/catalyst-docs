@@ -3,8 +3,6 @@ title: "30 — The catalyst CLI: complete command-line reference (kernel 0.119.2
 classification: Public
 ---
 
-# 30 — The `catalyst` CLI: complete command-line reference (kernel 0.119.2)
-
 This chapter documents every command, subcommand, option, exit code, environment
 variable, file and side effect of the `catalyst` command line — the executable half
 of the catalyst kernel, owned by **cantica-tech/catalyst**. It also documents the
@@ -267,8 +265,8 @@ The documented convention (`CLI.md`, "Exit codes") and what the code actually do
 |---|---|---|
 | `0` | Success. | Also: `check`, `hook stop`, `hook commit-msg` outside any project (so a fresh clone or CI runner is not failed); `hook stop` when it does not block; `hook start` always; `inbox` whether or not anything waits; `criterion status` always; `report` always. |
 | `1` | Failure: a check found errors (or warnings under `--strict`), an argument was refused, a git operation failed. The reason is on stderr. | Every caught `IdError`, `JournalError`, `CriterionError`, `AnalysisError`, `ShareError`, `OSError` in `main()`; every `SystemExit("catalyst: ...")` (string exits print to stderr and exit 1). |
-| `2` | No deployment at or above the directory (or `--working-copy` names none). | `DeploymentNotFound` / `WorkingCopyMissing` in `main()`; `open` outside a project. **But also** (not in the convention): any argparse usage error (unknown option, missing argument, bad choice); `init` with no `--module`/`--no-module`, both, no `--kernel` reachable, or no user name; `id next --count 0`; `module install|upgrade` without a reachable `--kernel`; `workspace init` without a user name; `agent run` that cannot start (unknown command, no adapter, agent CLI not on `PATH`); `hook stop` when it blocks (Claude Code's protocol: exit 2 + stderr). |
-| `3` | Not done for lack of the user's assent (law L3, INV-4): the command printed what it would publish; re-run with `--yes` once the user agrees. | `share push`, `share create`, `criterion push`, `criterion create <url>`, the first `--url` of `criterion push|sync`, `serve landing connect`, `serve members open`. On an interactive terminal these ask `Publish? [y/N]` instead (a "no" also exits `3`). |
+| `2` | No deployment at or above the directory (or `--working-copy` names none). | `DeploymentNotFound` / `WorkingCopyMissing` in `main()`; `open` outside a project. **But also** (not in the convention): any argparse usage error (unknown option, missing argument, bad choice); `init` with no `--module`/`--no-module`, both, no `--kernel` reachable, or no user name; `id next --count 0`; <code>module install&#124;upgrade</code> without a reachable `--kernel`; `workspace init` without a user name; `agent run` that cannot start (unknown command, no adapter, agent CLI not on `PATH`); `hook stop` when it blocks (Claude Code's protocol: exit 2 + stderr). |
+| `3` | Not done for lack of the user's assent (law L3, INV-4): the command printed what it would publish; re-run with `--yes` once the user agrees. | `share push`, `share create`, `criterion push`, `criterion create <url>`, the first `--url` of <code>criterion push&#124;sync</code>, `serve landing connect`, `serve members open`. On an interactive terminal these ask `Publish? [y/N]` instead (a "no" also exits `3`). |
 
 Other non-zero codes: `catalyst task` returns Task's own exit code; `agent run`
 returns `1` when the agent reports failure (or was denied a tool).
@@ -383,8 +381,8 @@ Which verbs check which grant (the `command` passed to `resolve_signer`):
 | `journal redact` | `journal` |
 | `freeze`, `unfreeze` | `freeze` |
 | `definition migrate` | `migrate-definition` |
-| `sync apply`, `module install|upgrade`, `migrate --apply` | `sync-framework` |
-| `share push|create --driver serve`, `criterion push` | `share` |
+| `sync apply`, <code>module install&#124;upgrade</code>, `migrate --apply` | `sync-framework` |
+| <code>share push&#124;create --driver serve</code>, `criterion push` | `share` |
 | `analysis *` (writing) | `run-analysis` |
 | `identity configure` | `identity` |
 | `id next`, `id next-rule`, `approve`, `propose`, `reconcile`, `repair derived`, `landing init` | none at the signer level (`approve` checks the gate's role; `reconcile`/`propose` the reconciliation level; `landing init` requires an admin) |
@@ -612,7 +610,7 @@ flowchart LR
 
 ### 3.1 `catalyst init`
 
-```
+```text
 catalyst [--project <dir>] init --name <name> (--module <id> | --no-module)
          [--module-dir <dir>] [--kernel <framework/kernel>]
          [--identity-issuer <url> [--identity-client <id>] [--catalyst-client <id>]]
@@ -714,7 +712,7 @@ Nothing is shared: `share create` publishes later.
 
 ### 3.2 `catalyst open`
 
-```
+```text
 catalyst [--project <dir>] open [--fetch] [--agent <id>] [--json]
 ```
 
@@ -760,7 +758,7 @@ project file above.
 
 ### 3.3 `catalyst where`
 
-```
+```text
 catalyst [--project <dir>] where [--json]
 ```
 
@@ -770,14 +768,14 @@ JSON (`spec/where.schema.json`): `project`, `file`, `name`, `criterion`, `kind`
 Exit `1` when no project file is found **or** the criterion is missing (note: not
 `2`). Example output:
 
-```
+```text
 project    /home/ada/src/acme (catalyst.toml, name acme)
 criterion  /home/ada/.catalyst/projects/acme/criterion (home)
 ```
 
 ### 3.4 `catalyst runtime install` / `catalyst runtime status`
 
-```
+```text
 catalyst runtime install
 catalyst runtime status [--json]
 ```
@@ -798,7 +796,7 @@ Pitfall: runtimes accumulate (no cleanup command); delete old
 
 ### 3.5 `catalyst move`
 
-```
+```text
 catalyst [--project <dir>] move (--to-home | --name <new>) [--no-runtime] [--as <user>]
 ```
 
@@ -817,7 +815,7 @@ refusal (name in use, nothing to move), printing one `- step` line per action.
 
 ### 3.6 `catalyst migrate`
 
-```
+```text
 catalyst [--project <dir>] migrate [--kernel <dir|zip>] [--since <version>]
          [--apply [--template <TYPE|all> ...] [--no-runtime]]
          [--decline <TYPE|all> ...] [--as <user>] [--intent <why>] [--json]
@@ -849,7 +847,7 @@ Output lines: `auto  <kind> <detail>`, `you   <kind> ...`, `done  ...`. Exit `0`
 
 ### 3.7 `catalyst workspace init` / `catalyst workspace status`
 
-```
+```text
 catalyst workspace init <name>.code-workspace [--user <name>] [--git-username <u>]
          [--identity-issuer <url> [--identity-client <id>] [--catalyst-client <id>]] [--kernel <dir>]
 catalyst workspace status <name>.code-workspace [--json]
@@ -871,7 +869,7 @@ are members (`spec/workspace-status.schema.json`). `init` with no user name → 
 
 ### 4.1 `catalyst agent install|uninstall <agent>`, `catalyst agent status`
 
-```
+```text
 catalyst agent install   (claude-code|copilot|vscode|cursor|codex|gemini)
 catalyst agent uninstall (claude-code|copilot|vscode|cursor|codex|gemini)
 catalyst agent status [--json]
@@ -900,7 +898,7 @@ JSON is never rewritten — the snippet to add is printed and the command fails
 
 ### 4.2 `catalyst agent run`
 
-```
+```text
 catalyst [--project <dir>] agent run <command> [<arguments>...] [--agent <id>] [--json]
 ```
 
@@ -926,7 +924,7 @@ denied, `2` cannot start.
 
 ### 4.3 `catalyst agent runs`
 
-```
+```text
 catalyst [--project <dir>] agent runs [--limit N] [--json]
 ```
 
@@ -935,7 +933,7 @@ This user's run log for the project, oldest first, with a total cost line
 
 ### 4.4 `catalyst hook start`
 
-```
+```text
 catalyst [--project <dir>] hook start [--format text|json|cursor] [--quiet]
 ```
 
@@ -982,7 +980,7 @@ sequenceDiagram
 
 ### 4.5 `catalyst hook stop`
 
-```
+```text
 catalyst [--project <dir>] hook stop [--strict] [--format exit2|json|gemini|cursor]
 ```
 
@@ -1031,7 +1029,7 @@ non-blocking).
 
 ### 4.6 `catalyst hook commit-msg`
 
-```
+```text
 catalyst [--project <dir>] hook commit-msg <message_file> [--route]
 ```
 
@@ -1073,7 +1071,7 @@ owned file staged → the top's deployment checks the message, if any.
 
 ### 4.7 `catalyst hook install`
 
-```
+```text
 catalyst [--project <dir>] hook install
 ```
 
@@ -1087,7 +1085,7 @@ must call the hook from there.
 
 ### 4.8 `catalyst mcp`
 
-```
+```text
 $CATALYST_HOME/bin/catalyst mcp
 ```
 
@@ -1151,7 +1149,7 @@ sequenceDiagram
 
 ### 4.9 `catalyst task`
 
-```
+```text
 catalyst [--project <dir>] task [<name> [-- <arguments>...]]
 ```
 
@@ -1172,7 +1170,7 @@ Example: `catalyst task create -- bug "The export drops the last row"` runs
 
 ### 5.1 `catalyst check`
 
-```
+```text
 catalyst [--project <dir> | --working-copy <dir>] check [--strict] [--json]
 ```
 
@@ -1228,7 +1226,7 @@ flowchart TD
 
 ### 5.2 `catalyst validate`
 
-```
+```text
 catalyst [--project|--working-copy ...] validate [--strict] [--json]
 ```
 
@@ -1243,7 +1241,7 @@ Warnings (`--strict` promotes): `enum-value`, `unknown-user`, `guard`, `ref-type
 
 ### 5.3 `catalyst index regen`
 
-```
+```text
 catalyst [...] index regen [--check [--diff]]
 ```
 
@@ -1258,7 +1256,7 @@ table) have no generated index. Never edit an index by hand (law L6).
 
 ### 5.4 `catalyst trace`
 
-```
+```text
 catalyst [--project <dir>] trace [<range>] [--pattern-only]
 ```
 
@@ -1279,7 +1277,7 @@ release zipapp with `--pattern-only`.
 
 ### 5.5 `catalyst unrecorded`
 
-```
+```text
 catalyst [--project <dir>] unrecorded [<range>] [--json]
 ```
 
@@ -1294,7 +1292,7 @@ checkout). Resolve with `/adopt` (`journal adopt` or revert).
 
 ### 5.6 `catalyst report`
 
-```
+```text
 catalyst [...] report [--since <ISO date>] [--json]
 ```
 
@@ -1308,7 +1306,7 @@ adopted_commits`. Always exit `0`.
 
 ### 5.7 `catalyst audit`
 
-```
+```text
 catalyst [...] audit [--json] [--html <file>]
 ```
 
@@ -1322,7 +1320,7 @@ only file written. JSON: `spec/audit.schema.json`. `serve --local` answers
 
 ### 5.8 `catalyst badge`
 
-```
+```text
 catalyst [...] badge [--metric check|chain] [--out <file>]
 ```
 
@@ -1337,7 +1335,7 @@ for a CI job to publish.
 
 ### 6.1 `catalyst id next`
 
-```
+```text
 catalyst [...] id next <PREFIX> [--count N] [--as <user>]
 ```
 
@@ -1358,7 +1356,7 @@ two contributors can draw the same number under different userids (both valid).
 
 ### 6.2 `catalyst id next-rule`
 
-```
+```text
 catalyst [...] id next-rule <doc-prefix> <DOMAIN> [--as <user>]
 ```
 
@@ -1370,7 +1368,7 @@ each module's namespace are always accepted. Example: `id next-rule br AUTH` →
 
 ### 6.3 `catalyst userid gen`
 
-```
+```text
 catalyst [...] userid gen
 ```
 
@@ -1380,7 +1378,7 @@ know existing userids). Writes nothing.
 
 ### 6.4 `catalyst identity ...`
 
-```
+```text
 catalyst [...] identity configure [--provider keycloak|static] --issuer <url> [--client <id>]
                                   [--catalyst-client <id>] [--link <retired user>] [--as <user>] [--intent <why>]
 catalyst [...] identity login   [--issuer <url> [--client <id>]] [--json]
@@ -1411,7 +1409,7 @@ With `--issuer`, `login`/`logout`/`whoami`/`status` work outside any deployment
 
 ### 6.5 `catalyst user ...`, `catalyst role ...` (always refuse)
 
-```
+```text
 catalyst user add <name> <role> [--git-username <u>] [--as] [--intent] [--json]
 catalyst user remove <name> | user modify <name> <field> <value> | user assign-role <name> <role>
 catalyst role add <name> [--action <a> ...] [--reconciliation full|propose|none] [--provider-role <r>]
@@ -1440,7 +1438,7 @@ for criterion files, project-relative otherwise), optional `tier`, `via`
 
 ### 7.1 `catalyst journal append`
 
-```
+```text
 catalyst [...] journal append --command <cmd> --action <action> --artifact <id|text>
          --intent <text> [...] --file <path> [...] [--target <id> ...] [--tier <tier>]
          [--as <user>] [--allow-unchanged] [--json]
@@ -1466,7 +1464,7 @@ a note about `refs/catalyst/journal`.
 
 ### 7.2 `catalyst journal adopt`
 
-```
+```text
 catalyst [...] journal adopt <commit> [<commit> ...] | <A>..<B>
          --intent <text> [...] [--target <id> ...] [--artifact <id|text>] [--tier <tier>] [--as <user>] [--json]
 ```
@@ -1482,7 +1480,7 @@ defaults to `commit <sha>`. Files already recorded are skipped; nothing unrecord
 
 ### 7.3 `catalyst journal verify`
 
-```
+```text
 catalyst [--working-copy ...] journal verify [--strict] [--legacy] [--json]
 ```
 
@@ -1496,7 +1494,7 @@ JSON: `{"ok", "issues"}`.
 
 ### 7.4 `catalyst journal restore`
 
-```
+```text
 catalyst [...] journal restore <timestamp> [<out>]
 ```
 
@@ -1508,7 +1506,7 @@ tree. Redacted blobs are skipped. Exit `1` listing paths whose blob is missing.
 
 ### 7.5 `catalyst journal show`
 
-```
+```text
 catalyst [...] journal show [--since <ISO>] [--artifact <id>] [--actor <name>] [--rule <id>] [--json]
 catalyst [...] journal show --artifact <id> --content [--json]
 ```
@@ -1521,7 +1519,7 @@ missing blob is `null`, a redacted one `null` + `redacted: true`). Short IDs res
 
 ### 7.6 `catalyst journal redact`
 
-```
+```text
 catalyst [...] journal redact <blob40hex> [...] --intent <why> [--as] [--tier] [--json]
 ```
 
@@ -1535,7 +1533,7 @@ journal does not name is refused. Default tier: the module's no-artifact tier.
 
 ### 7.7 `catalyst journal pin`
 
-```
+```text
 catalyst [...] journal pin [--share]
 ```
 
@@ -1561,10 +1559,10 @@ meta-rule as written in the handbook (`rr-META-015`).
 | `view` | `view <id> [--json]` | Fields, outgoing links, incoming links, journal entries; a rule adds `title`, `status`, `domain`, `text`; a proposal case adds `proposal`. Unknown → exit `1`. |
 | `backlog` | `backlog [--json]` | Open items per type/status (open = not a closed state), open items missing a required link, rules no open item targets, `coverage` of active rules. |
 | `graph` | `graph [--json]` | `rules`, `domains`, `artifacts` (with `links`, `mentions`, row items), `types` (fields, states, grounding). |
-| `impact` | `impact <id> [--up|--down] [--depth N] [--json]` | `upstream` / `downstream` transitively, each with `depth` and `via{id,field,on}`; prose mentions listed apart. Unknown → `1`. |
+| `impact` | <code>impact &lt;id&gt; [--up&#124;--down] [--depth N] [--json]</code> | `upstream` / `downstream` transitively, each with `depth` and `via{id,field,on}`; prose mentions listed apart. Unknown → `1`. |
 | `inbox` | `inbox [--json]` | What waits for a person, kinds `unrecorded-commit`, `unrecorded-change`, `reconciliation`, `analysis`, `approval`, `proposal`, `overdue`, each with `evidence` and `settle` commands. Always `0`. `--working-copy`: last four kinds. |
 | `approvals` | `approvals <id> [--json]` | Each gate covering the entity: counted approvals for its current version, missing count. |
-| `landing show` | `landing show [--json]` | The landing policy in force (`IAM/landing.json`, else the kernel's `standard`) and its source; rules as `match -> one pull request per <group>, <review>, merge <auto|admin>`. |
+| `landing show` | `landing show [--json]` | The landing policy in force (`IAM/landing.json`, else the kernel's `standard`) and its source; rules as <code>match -&gt; one pull request per &lt;group&gt;, &lt;review&gt;, merge &lt;auto&#124;admin&gt;</code>. |
 | `definition list` | `definition list [--json]` | Each deployed `definitions/<type>.md`: slug, version, description. |
 | `why` | `why <item>` | A law (`L3`, `SE-L1`) with the invariants it absorbs; an invariant (`INV-17`, `INV-SE-2`) with its law, enforcement and text; a meta-rule section (`rr-META-012`, `rr-SE-001`); an alias as its new ID; else `view` of an ID. Nothing matches → exit `1`. No `--json`. |
 | `spec` | see [§12.2](#122-catalyst-spec) | |
@@ -1579,7 +1577,7 @@ refusal. Implementation: `scripts/catalyst/edit.py` unless noted.
 
 ### 9.1 `catalyst new`
 
-```
+```text
 catalyst [...] new <type> --title <t> [--field NAME=VALUE ...] [--as] [--intent ...] [--command <cmd>] [--tier] [--json] [--preview|--forewarned]
 ```
 
@@ -1603,7 +1601,7 @@ the new title; the ID never changes (L7). Back-references follow.
 
 ### 9.3 `catalyst edit`
 
-```
+```text
 catalyst [...] edit <id> [--field NAME=VALUE ...] [--section HEADING=TEXT ...] [--section-file HEADING=FILE ...] ...
 ```
 
@@ -1618,7 +1616,7 @@ level) and the file is untouched — output `<id> is linked: the edit is a propo
 
 ### 9.4 `catalyst status set`
 
-```
+```text
 catalyst [...] status set <id> <status> [--force] [--through] [--as] [--intent] [--command] [--tier] [--json]
 ```
 
@@ -1636,7 +1634,7 @@ There is no bare `catalyst status`: `status` requires the `set` subcommand.
 
 ### 9.5 `catalyst link` / `catalyst unlink`
 
-```
+```text
 catalyst [...] link   <id> <field> <id> [<id> ...] [...]
 catalyst [...] unlink <id> <field> <id> [<id> ...] [...]
 ```
@@ -1647,7 +1645,7 @@ derived field is changed from where it is cited.
 
 ### 9.6 `catalyst restore`
 
-```
+```text
 catalyst [...] restore <id> --to <ISO timestamp | #N> [...]
 ```
 
@@ -1659,7 +1657,7 @@ unchanged file, or a version entering a gated state without approvals.
 
 ### 9.7 `catalyst repair derived`
 
-```
+```text
 catalyst [...] repair derived [--as] [--tier] [--json]
 ```
 
@@ -1669,7 +1667,7 @@ Idempotent: `every derived field agrees with its sources`.
 
 ### 9.8 `catalyst approve` / approval gates
 
-```
+```text
 catalyst [...] approve <id> --gate <gate> [--as] [--intent] [--tier] [--json]
 ```
 
@@ -1684,7 +1682,7 @@ On a proposal case, it approves the proposed version.
 
 ### 9.9 `catalyst landing init`
 
-```
+```text
 catalyst [...] landing init [--policy standard|open|reviewed|host] [--force] [--as <admin>] [--intent] [--json]
 ```
 
@@ -1695,7 +1693,7 @@ drives `catalyst serve landing`.
 
 ### 9.10 `catalyst propose`
 
-```
+```text
 catalyst [...] propose <id> --from <file|-> [--title <t>] [--as] [--intent] [--tier] [--json]
 ```
 
@@ -1707,7 +1705,7 @@ untouched. A rule is proposed as its whole rule document. Needs a `propose` or
 
 ### 9.11 `catalyst reconcile`
 
-```
+```text
 catalyst [...] reconcile <RECON-id> (accept|accept-with-edits|reject|propose|close)
          [--text <resolution>] [--from <file|->] [--as] [--intent] [--preview|--forewarned]
 ```
@@ -1723,7 +1721,7 @@ withdraws (author, while open); `reject` writes nothing to the entity. Output:
 
 ### 9.12 `catalyst try`
 
-```
+```text
 catalyst [...] try [--json] [--keep] <verb> <its arguments...>
 catalyst [...] try --proposal <RECON-id> [--as <user>] [--json] [--keep]
 ```
@@ -1740,7 +1738,7 @@ is refused (the refusal is the answer). `--proposal` = `reconcile <case> accept`
 
 ### 9.13 `catalyst freeze` / `catalyst unfreeze`
 
-```
+```text
 catalyst [...] freeze|unfreeze <item> [--as] [--intent] [--json]
 ```
 
@@ -1750,7 +1748,7 @@ documents unless `--force`). Journaled (grant `freeze`).
 
 ### 9.14 `catalyst definition migrate`
 
-```
+```text
 catalyst [...] definition migrate <entity-folder-name> <version> [--kernel <dir>] [--as] [--intent] [--json]
 ```
 
@@ -1768,11 +1766,11 @@ The four-eyes analysis of existing code (`ANALYSIS-PLAYBOOK.md`, `/run-analysis`
 
 | Subcommand | Synopsis | Effect |
 |---|---|---|
-| `start` | `analysis start [<path>...] [--mode bootstrap|incremental] [--passes 1|2] [--name <n>] [--as]` | Allocates the record (`Extracting`), writes `inventory.json`: every tracked governed file under the paths (default `.`) with blob hash, product `HEAD`, passes (default 2, or `analysis_passes` from `catalyst.toml`). `incremental` (default) lists existing rules/domains/grounded artifacts; `bootstrap` refuses when rules exist. |
-| `record` | `analysis record <ID> --pass A|B <file> [--replace] [--as]` | Validates one pass's findings JSON (kind, title, statement, confidence, in-scope evidence, …) and stores `A.json`/`B.json`; warns when passes are identical; single-pass refuses `B`. |
+| `start` | <code>analysis start [&lt;path&gt;...] [--mode bootstrap&#124;incremental] [--passes 1&#124;2] [--name &lt;n&gt;] [--as]</code> | Allocates the record (`Extracting`), writes `inventory.json`: every tracked governed file under the paths (default `.`) with blob hash, product `HEAD`, passes (default 2, or `analysis_passes` from `catalyst.toml`). `incremental` (default) lists existing rules/domains/grounded artifacts; `bootstrap` refuses when rules exist. |
+| `record` | <code>analysis record &lt;ID&gt; --pass A&#124;B &lt;file&gt; [--replace] [--as]</code> | Validates one pass's findings JSON (kind, title, statement, confidence, in-scope evidence, …) and stores `A.json`/`B.json`; warns when passes are identical; single-pass refuses `B`. |
 | `diff` | `analysis diff <ID> [--as]` | Pairs findings → `diff.json` (`agreed`, `conflicting`, `a_only`, `b_only`); Status `Reconciling`. |
 | `reconcile` | `analysis reconcile <ID> <file> [--as]` | Accepts `{"findings","dropped"}` only if every pass finding is in exactly one final `sources` or dropped with a reason, and non-agreements carry a `verification` other than `both passes`; writes `reconciled.json`; Status `Deciding`. |
-| `decide` | `analysis decide <ID> <F#> accept|reject [--artifact <DOMAIN|rule|artifact ID>] [--reason <t>] [--as]` | Records the user's decision in `decisions.json`; `accept` needs an existing artifact; later decisions replace earlier ones. |
+| `decide` | <code>analysis decide &lt;ID&gt; &lt;F#&gt; accept&#124;reject [--artifact &lt;DOMAIN&#124;rule&#124;artifact ID&gt;] [--reason &lt;t&gt;] [--as]</code> | Records the user's decision in `decisions.json`; `accept` needs an existing artifact; later decisions replace earlier ones. |
 | `close` | `analysis close <ID> [--as]` | Refuses while undecided or an accepted artifact is missing; Status `Closed`, summary. |
 | `abandon` | `analysis abandon <ID> --reason <t> [--as]` | Status `Abandoned`. |
 | `status` | `analysis status <ID> [--json]` | Phase, passes, diff counts, decisions, `PROBLEM` lines; `--json` full report. |
@@ -1802,7 +1800,7 @@ stateDiagram-v2
 
 ### 10.1 `catalyst sync plan` / `catalyst sync apply`
 
-```
+```text
 catalyst [...] sync plan|apply --kernel <framework/kernel | kernel-vX.Y.Z.zip>
          [--module <dir | zip | git URL[@ref]>] [--base-kernel <dir|zip>] [--cli <catalyst.pyz>]
          [--commands-dir <dir>] [--as] [--intent] [--json]
@@ -1813,7 +1811,7 @@ The mechanical half of `/sync-framework` (`scripts/catalyst/sync.py`).
 | Option | Meaning |
 |---|---|
 | `--kernel` (required) | Target kernel. |
-| `--module` | Target module (a checkout reduced to what its release ships, a zip, or a git URL with `@<branch|tag|commit>`, cloned shallow to a temp dir). With several modules installed it moves only the one it names; a module not installed is refused. Without it the governing documents are recomposed with every installed module as deployed. |
+| `--module` | Target module (a checkout reduced to what its release ships, a zip, or a git URL with <code>@&lt;branch&#124;tag&#124;commit&gt;</code>, cloned shallow to a temp dir). With several modules installed it moves only the one it names; a module not installed is refused. Without it the governing documents are recomposed with every installed module as deployed. |
 | `--base-kernel` | The kernel the deployment was composed from (default: `…/v<deployed>/kernel-v<deployed>.zip` next to a release zip, or the checkout's git tag of the deployed version). |
 | `--cli` | The `catalyst.pyz` to vendor (default: the release's, or built from the checkout). |
 | `--commands-dir` | Where an older catalyst wrote project command files, to retire (default `.claude/commands`). |
@@ -1850,7 +1848,7 @@ flowchart TD
 
 ### 10.2 `catalyst recompose`
 
-```
+```text
 catalyst [...] recompose --base-kernel <old kernel> --base-module <old module dir> --kernel <new kernel>
                          [--module-dir <new module dir>] [--check] [--force]
 ```
@@ -1866,7 +1864,7 @@ documents. Used inside `sync apply`; rarely run by hand.
 
 ### 10.3 `catalyst module ...`
 
-```
+```text
 catalyst [...] module list [--json]
 catalyst [...] module verify [<id>] [--json]
 catalyst [...] module available <id> [--json]
@@ -1919,7 +1917,7 @@ the union; the first module's invariants sit at the criterion root
 
 ### 10.4 `catalyst share ...` (the sharing driver)
 
-```
+```text
 catalyst [...] share info [--json]
 catalyst [...] share status [--fetch] [--json]
 catalyst [...] share pull
@@ -1998,7 +1996,7 @@ sequenceDiagram
 
 ### 10.5 `catalyst criterion ...` (git specifics, partly legacy)
 
-```
+```text
 catalyst [...] criterion status [--fetch]
 catalyst [...] criterion create [<url>] [--branch criterion] [--yes]
 catalyst [--project <dir>] criterion join [--url <url>]
@@ -2077,7 +2075,7 @@ Product CI with a home-store criterion:
 
 ### 10.6 `catalyst serve` and `catalyst members`
 
-```
+```text
 catalyst serve [--db <file>] [--host 127.0.0.1] [--port 8765] [--allow-origin <origin> ...]
                [--identity-issuer <url> [--identity-api-client catalyst-api]] [--criterion <name>]
 catalyst serve --local [--project <dir>] [--port <n>] [--static <dir>] [--allow-origin <origin> ...]
@@ -2295,14 +2293,14 @@ Kernel commands (0.119.2):
 | `/list <type> [--filter ...]` | List artifacts, rules, users, roles, templates (`--type <family>`), or `all`. | `catalyst list` |
 | `/freeze <item>` | Protect from `/sync-framework`. | `catalyst freeze` / `unfreeze` |
 | `/migrate-definition <type> <version>` | Move a frozen definition forward (INV-23). | `catalyst definition migrate --kernel <release>` |
-| `/share info|status|pull|push <msg>|create <url> [--protect]|join [<url>]` | Share the criterion; `push`/`create` only on the user's yes. | `catalyst share ...` (exit 3 → ask → `--yes`) |
-| `/reconcile <RECON-id> accept|accept-with-edits|reject|propose <text>|close` | Decide a reconciliation case (level-gated). | `catalyst reconcile` |
+| <code>/share info&#124;status&#124;pull&#124;push &lt;msg&gt;&#124;create &lt;url&gt; [--protect]&#124;join [&lt;url&gt;]</code> | Share the criterion; `push`/`create` only on the user's yes. | `catalyst share ...` (exit 3 → ask → `--yes`) |
+| <code>/reconcile &lt;RECON-id&gt; accept&#124;accept-with-edits&#124;reject&#124;propose &lt;text&gt;&#124;close</code> | Decide a reconciliation case (level-gated). | `catalyst reconcile` |
 | `/status <id> <status> [force]` | Change Status; refuses `RECON-`. | `catalyst status set [--force] --intent ...` |
-| `/run-analysis [<path>...] [--bootstrap|--incremental] [--passes 1|2]` | Four-eyes analysis of existing code. | `catalyst analysis start|record|diff|reconcile|decide|close` |
-| `/sync-framework [latest|<version>] [--force <scope>]` | Synchronise with a kernel (and module) release. | `catalyst sync plan`, `sync apply`, `migrate`, `check` |
+| <code>/run-analysis [&lt;path&gt;...] [--bootstrap&#124;--incremental] [--passes 1&#124;2]</code> | Four-eyes analysis of existing code. | <code>catalyst analysis start&#124;record&#124;diff&#124;reconcile&#124;decide&#124;close</code> |
+| <code>/sync-framework [latest&#124;&lt;version&gt;] [--force &lt;scope&gt;]</code> | Synchronise with a kernel (and module) release. | `catalyst sync plan`, `sync apply`, `migrate`, `check` |
 | `/check-rules [<file>]` (`/audit`) | Mechanical `catalyst check` then judgment checks; with a file, its change-impact. | `catalyst check`, `impact`, `view` |
-| `/journal [--since] [--artifact] [--actor] [--rule] | restore <timestamp>` (`/journal-restore`) | Read-only journal report or point-in-time restore. | `catalyst journal show`, `journal restore` |
-| `/adopt [<commit>|<range>]` | Resolve changes committed outside catalyst: adopt or revert, with the user. | `catalyst unrecorded`, `journal adopt`, `git revert` (with assent) |
+| <code>/journal [--since] [--artifact] [--actor] [--rule] &#124; restore &lt;timestamp&gt;</code> (`/journal-restore`) | Read-only journal report or point-in-time restore. | `catalyst journal show`, `journal restore` |
+| <code>/adopt [&lt;commit&gt;&#124;&lt;range&gt;]</code> | Resolve changes committed outside catalyst: adopt or revert, with the user. | `catalyst unrecorded`, `journal adopt`, `git revert` (with assent) |
 | `/help [<command>]` (`/commands`) | Every command with its purpose, and the artifact types. | `catalyst spec` |
 
 Every artifact-changing command ends the same way (§4 preamble): `catalyst index
@@ -2321,7 +2319,7 @@ cantica-tech/catalyst additionally keeps `.claude/commands/dogfood.md` (`/dogfoo
 
 ### 12.2 `catalyst spec`
 
-```
+```text
 catalyst [...] spec [<command> [<part>]] [--general] [--budget WORDS] [--json]
 ```
 
@@ -2400,7 +2398,7 @@ touches a deployed project's Taskfile.
 | `catalyst` | `PYTHONPATH=scripts python3 -m catalyst {{.CLI_ARGS}}` | `task catalyst -- <args>`: the CLI from source. |
 | `release` | `package_release.py`, then `check:command-parity`, `check:kernel-purity`, `test` | Packages, no commit, no push. |
 | `release:publish` | `package_release.py --publish-dir "$PUBLISH_DIR" --push` | Requires `PUBLISH_DIR` (a distribution repository checkout). Refuses (exit 2) unless HEAD is the version's release tag (`--unreleased` overrides, not exposed by the task). **Commits and pushes** module repositories and `PUBLISH_DIR` — only with the owner's assent. |
-| `lint`, `format`, `typecheck`, `standards:lint`, `standards:format`, `standards:typecheck`, `standards:sync`, `standards:check` | from `{{.STANDARDS_DIR | default "../standards"}}/Taskfile.standards.yml` (optional include, flattened) | cantica-tech/standards: Ruff, Prettier, Pyright; `standards:check` fails if the vendored copy drifted. Missing checkout → tasks absent. |
+| `lint`, `format`, `typecheck`, `standards:lint`, `standards:format`, `standards:typecheck`, `standards:sync`, `standards:check` | from <code>{{.STANDARDS_DIR &#124; default "../standards"}}/Taskfile.standards.yml</code> (optional include, flattened) | cantica-tech/standards: Ruff, Prettier, Pyright; `standards:check` fails if the vendored copy drifted. Missing checkout → tasks absent. |
 
 ### 13.2 `scripts/`
 
@@ -2411,7 +2409,7 @@ touches a deployed project's Taskfile.
 | `module_loader.py` | library | Kernel entity types and module manifests/ETDs; `REPO_ROOT`. Packed in the zipapp. |
 | `check_deployment.py` | `python3 scripts/check_deployment.py [--require]` | Structural invariants (INV-5..8, 16, 17, 23, 24, 26) of the deployment found from the cwd; module-agnostic. Exit 0 clean, 1 violations; no deployment → 0 unless `--require`. Packed in the zipapp (used by `check`). |
 | `check_command_parity.py` | `python3 scripts/check_command_parity.py [--require]` | Criterion `Taskfile.common.yml` (one task per §4 command) and module manifest commands vs the composed §4. Exit 1 on drift (or nothing to check under `--require`). |
-| `check_kernel_purity.py` | `python3 scripts/check_kernel_purity.py [-v|--warnings]` | INV-30: denylist derived from modules in `framework/modules/catalog.md`, found as `../catalyst-<id>/`, `framework/modules/<id>/` or `$CATALYST_MODULES_DIR/<id>`; errors (exit 1) for module ids, prefixes, folders, commands, template/definition names in the kernel, tooling and root docs (CHANGELOG included); warnings for entity names as words (`-v` lists them). |
+| `check_kernel_purity.py` | <code>python3 scripts/check_kernel_purity.py [-v&#124;--warnings]</code> | INV-30: denylist derived from modules in `framework/modules/catalog.md`, found as `../catalyst-<id>/`, `framework/modules/<id>/` or `$CATALYST_MODULES_DIR/<id>`; errors (exit 1) for module ids, prefixes, folders, commands, template/definition names in the kernel, tooling and root docs (CHANGELOG included); warnings for entity names as words (`-v` lists them). |
 | `check_frozen_surface.py` | `python3 scripts/check_frozen_surface.py [--write]` | Prose feature freeze (R1.6, ADR-017): invariants, meta-rules, §4 commands, entity types, top-level kernel docs vs `docs/FROZEN-SURFACE.json`; `--write` re-snapshots (a reviewed, ADR-backed change). |
 | `measure_tokens.py` | `python3 scripts/measure_tokens.py [--write-baseline]` | Approximate token cost (bytes/4) of BOOTSTRAP + INVARIANTS brief, every `spec <cmd>`, install path; `--write-baseline` writes `docs/BUDGETS-BASELINE.json`. |
 | `check_token_budgets.py` | `python3 scripts/check_token_budgets.py` | Fails an item that grew >5% over the baseline or has no baseline. |
@@ -2453,7 +2451,6 @@ flowchart LR
 Generated from the CLI's own parser (copied from `cantica-tech/catalyst:framework/kernel/CLI.md`, whose tables `scripts/gen_docs.py --check` verified as current for 0.119.2). `catalyst <command> --help` says the same.
 
 ### 14.1 Command index
-
 
 Every command and its options, from the CLI itself; sections 3–10 describe each.
 
@@ -2515,7 +2512,7 @@ Every command and its options, from the CLI itself; sections 3–10 describe eac
 | `catalyst module list` | each installed module: id, version, source, commit, hash (no network) | `--json` |
 | `catalyst module install <source>` | install a module into a deployment that has none (seeded as init does) | `--as`, `--intent`, `--json`, `--kernel` |
 | `catalyst module available <id>` | the releases at the module's recorded repository (the network) | `--json` |
-| `catalyst module upgrade <id> <source>` | move the installed module to another release, through `sync plan\|apply` | `--as`, `--base-kernel`, `--intent`, `--json`, `--kernel`, `--plan` |
+| `catalyst module upgrade <id> <source>` | move the installed module to another release, through <code>sync plan\&#124;apply</code> | `--as`, `--base-kernel`, `--intent`, `--json`, `--kernel`, `--plan` |
 | `catalyst module verify <id>` | recompute each module's hash and compare it with the record (exit 1 on a difference) | `--json` |
 | `catalyst where` | the project's criterion: the home store, or a legacy working copy | `--json` |
 | `catalyst agent install <agent>` | add catalyst to the agent's user-level configuration | — |
@@ -2573,9 +2570,7 @@ Every command and its options, from the CLI itself; sections 3–10 describe eac
 | `catalyst identity link <user>` | keep a retired user's userid as yours, once (migration 0.106.0) | `--as` |
 | `catalyst userid gen` | draw a new unique userid (INV-26) | — |
 
-
 ### 14.2 Options
-
 
 Every argument and option, with its default and choices.
 
@@ -3029,11 +3024,9 @@ Every argument and option, with its default and choices.
 |  | `--as` `AS_USER` | the tests' static backend: which declared person |
 | `catalyst userid gen` | — | — |
 
-
 ---
 
 ## 15. Appendix B: `--json` output schemas
-
 
 What each command prints with `--json`, and the JSON Schema in `spec/` that describes it, generated from `spec/README.md` and the CLI's parser.
 
@@ -3106,6 +3099,5 @@ What each command prints with `--json`, and the JSON Schema in `spec/` that desc
 | `catalyst identity login` | `spec/identity-whoami.schema.json` |
 | `catalyst identity whoami` | `spec/identity-whoami.schema.json` |
 | `catalyst identity status` | `spec/identity-status.schema.json` |
-
 
 The schemas live in `cantica-tech/catalyst:spec/` (`spec/README.md` maps each to its verb and server route); a client (such as catalyst Studio) generates its types from them.

@@ -3,8 +3,6 @@ title: "40 — Process modules: software-engineering (SE) and knowledge-base (KB
 classification: Public
 ---
 
-# 40 — Process modules: software-engineering (SE) and knowledge-base (KBM)
-
 > Chapter of the catalyst fleet hand-off documentation. State as read on 2026-10-31:
 > kernel 0.119.2 (`cantica-tech/catalyst`), software-engineering module 3.4.1
 > (`cantica-tech/catalyst-software-engineering`), knowledge-base module 0.6.1
@@ -131,7 +129,7 @@ a sibling of the catalyst checkout (`../catalyst-<id>/`).
 
 Layout as actually used today (format 3; the spec's §2 tree still shows the format-2 `schemas/` folder):
 
-```
+```text
 catalyst-<module-id>/
 ├── module.yaml                  manifest (format 3: declares the entity types inline)
 ├── version.txt                  module version; wins over module.yaml's version when they differ
@@ -716,11 +714,11 @@ run `catalyst task create -- req "<title>"`. (The module's own `Taskfile.module.
 | `/create bug <title>` (`/create-bug`) | `[<rule-id>]` | `catalyst new BUG --title "<t>" --field Targets=… --field Domain=… --field Severity=<…> --command /create-bug --tier fix --as <signer>` | `Open` | domain/rule prompt; severity; sections |
 | `/create test <title>` (`/create-test`) | `[<rule-id>]` | `catalyst new TEST … --field Targets=… --field Domain=… [--field Requirements=<REQ-ids>] [--field Steps=<STEP-ids>] --command /create-test --tier feature` | `Draft`; refuses unknown IDs; back-fills `Tests` on each REQ/STEP | not exempt from the rule gate |
 | `/create feature <title>` (`/create-feature`) | — | `catalyst new FEAT --title "<t>" [--field Roadmap=<RM-id>] --command /create-feature --as <signer>` | `Draft` | never prompts for domain/rule; if from a roadmap row: set the row `Triaged`, `Linked` = the FEAT (hand edit, `catalyst journal append --action update`, no `--target`); later REQs are **appended** to `Linked` |
-| `/create step <REQ-id\|BUG-id> <title>` (`/create-step`) | `<parent-id>` | `catalyst new STEP --title "<t>" --field Parent=<id> [--field Status=in-progress] --command /create-step --tier feature` (`--tier fix` for a BUG parent) | `planned` (or `in-progress` if work is underway); refuses an unknown parent; appends to the parent's `Steps` | no domain/rule prompt |
+| <code>/create step &lt;REQ-id\&#124;BUG-id&gt; &lt;title&gt;</code> (`/create-step`) | `<parent-id>` | `catalyst new STEP --title "<t>" --field Parent=<id> [--field Status=in-progress] --command /create-step --tier feature` (`--tier fix` for a BUG parent) | `planned` (or `in-progress` if work is underway); refuses an unknown parent; appends to the parent's `Steps` | no domain/rule prompt |
 | `/create adr <title>` (`/create-adr`) | `[<rule-id>...]` | `catalyst new ADR --title "<t>" [--field Rules=…] [--field Supersedes=<ADR-ids>] --command /create-adr --as <signer>` | `Proposed`; cites back in superseded ADRs' `Superseded by` | write Context/Decision/Alternatives/Consequences from what the user said; set `Accepted`/`Rejected` (`catalyst status set`) with `Decided`/`Decided by` **only when the person says so**; superseded ones → `Superseded` in the same turn |
 | `/create house-keeping <title>` (`/create-house-keeping`) — generated | — | `catalyst new HK --title … [--field Priority=…] --field Targets=… --field Domain=… [--field Area=…] --command /create-house-keeping` | `Open` | sections |
 | `/create decision <title>` (`/create-decision`) — generated duplicate of `/create adr` (§9) | — | `catalyst new ADR …` | `Proposed` | — |
-| `/roadmap add <name> <file>` (`/roadmap-add`) | `add\|update\|merge\|remove <name> [<file>]` | `catalyst id next RM --as <signer>` (first ID; rest consecutive, or `--count`) + file write + `catalyst journal append --action create` | rows `Not triaged`, `Linked` `*(none)*` | refuse if `<name>` exists; read local `<file>`, identify items, write one row per item with a real Description (not a restatement of Title), Start/Due only if the source gives them; register in `roadmaps.md`; report IDs |
+| `/roadmap add <name> <file>` (`/roadmap-add`) | <code>add\&#124;update\&#124;merge\&#124;remove &lt;name&gt; [&lt;file&gt;]</code> | `catalyst id next RM --as <signer>` (first ID; rest consecutive, or `--count`) + file write + `catalyst journal append --action create` | rows `Not triaged`, `Linked` `*(none)*` | refuse if `<name>` exists; read local `<file>`, identify items, write one row per item with a real Description (not a restatement of Title), Start/Due only if the source gives them; register in `roadmaps.md`; report IDs |
 | `/roadmap update <name> <file>` | | file write + `journal append --action update` | | full authoritative re-ingest: add new rows, update matched rows' Title/Description/Notes (ask when ambiguous), **flag** missing rows in Notes (never delete); update `Source` and `Last updated` |
 | `/roadmap merge <name> <file>` | | same | | partial delta: add/update only mentioned rows; flag nothing; update `Last updated` only |
 | `/roadmap remove <name>` | | delete or retire + `journal append --action retire` | | no linked rows → delete file and `roadmaps.md` entry; any linked row → add `Retired: <date>`, mark `retired` in `roadmaps.md`, keep every row/ID |
@@ -761,7 +759,7 @@ flowchart TD
 
 Deployed layout:
 
-```
+```text
 <criterion>/
   requirements/  requirements.md  templates/TEMPLATE-REQUIREMENT-vN.md
   steps/         steps.md         templates/TEMPLATE-STEP-vN.md
@@ -1101,7 +1099,7 @@ via `/kb-build`. The kernel also **generates** `/create knowledge-base` and `/cr
 
 Order: `Public` < `Internal` < `Confidential` < `Restricted` (`GUIDE.md`, "Classification"; `rr-KB-002`).
 
-```
+```text
 mark(doc)       = front matter `classification`, set when written:
                   source's KSOURCE.Classification, else KB.Default classification
 floor(doc)      = max(KB.Classification, Internal if source.Visibility == Private)
@@ -1286,7 +1284,7 @@ but inside it; builds older than the repository's latest commit.
 A KB is **its own repository**, a catalyst project governed by KBM (own `catalyst.toml`), so every document change is
 journaled:
 
-```
+```text
 <knowledge base>/
 ├── catalyst.toml
 ├── KB.md              KB- ID, title, classification, default classification, policy, basis/base/target, contents tree
@@ -1611,7 +1609,7 @@ flowchart TD
   RD --> CON["consumers: module install, sync apply --module,<br/>catalyst-ui's VS Code extension"]
 ```
 
-```
+```text
 cantica-tech/cantica-tech:catalyst/modules/
   README.md
   software-engineering/v1.0.0 … v3.4.1/{manifest.json, software-engineering-v<ver>.zip}

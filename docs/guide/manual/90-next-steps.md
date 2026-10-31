@@ -3,8 +3,6 @@ title: "90 — Next steps: the fleet's forward plan"
 classification: Public
 ---
 
-# 90 — Next steps: the fleet's forward plan
-
 This chapter is the consolidated forward plan for the catalyst fleet, as of **2026-10-31** (kernel 0.119.2). It draws only on public sources:
 
 - the open items in each repository's roadmap (`docs/roadmap.md`);
@@ -394,27 +392,27 @@ flowchart TD
 
 **Phase B — the next UI release.**
 
-3. Release the next UI version (desktop kernel 0.119.2) with `release:vsix:publish` as part of the release.
+- **3.** Release the next UI version (desktop kernel 0.119.2) with `release:vsix:publish` as part of the release.
 
 **Phase C — engine items owed to the UI.** One kernel release each.
 
-4. `check --json` with the entity, then `--json` on the write verbs and on `analysis`/`module`, then a `module upgrade` dry run.
-5. A run log kept by `agent run`; coverage counts.
-6. `init` from an installed runtime, which unblocks catalyst-mcp.
-7. Table rows: links from `Linked`, then `edit` and `history` on rows.
+- **4.** `check --json` with the entity, then `--json` on the write verbs and on `analysis`/`module`, then a `module upgrade` dry run.
+- **5.** A run log kept by `agent run`; coverage counts.
+- **6.** `init` from an installed runtime, which unblocks catalyst-mcp.
+- **7.** Table rows: links from `Linked`, then `edit` and `history` on rows.
 
 **Phase D — finish the decided designs.**
 
-8. Design 31's later phases: workflowed edits and retirements, tags and tag workflows. Then design 30's user groups and filtered reads, and design 32 phase 5.
-9. Design 33 phases 3–4 and **one real landing run** on a served criterion.
-10. The Studio editor (UI design 26) on top of 4, 8 and 9.
+- **8.** Design 31's later phases: workflowed edits and retirements, tags and tag workflows. Then design 30's user groups and filtered reads, and design 32 phase 5.
+- **9.** Design 33 phases 3–4 and **one real landing run** on a served criterion.
+- **10.** The Studio editor (UI design 26) on top of 4, 8 and 9.
 
 **Phase E — 1.0 readiness.** In parallel; gated on people and keys.
 
-11. Refresh `beta/` for the post-R3 verbs. Start the **multi-user trial**: the owner plus at least one human, 4 weeks. Measure the newcomer's first traced change with an outside newcomer.
-12. Copilot and Gemini CLI `agent run` adapters (B2).
-13. The release feed plus signing: kernel and modules (R7, R4.9 N4), desktop signing and auto-update.
-14. After a clean trial: **declare format 1.0**. That flips the manual-change detection and legacy pointers to errors. Then tag 1.0.
+- **11.** Refresh `beta/` for the post-R3 verbs. Start the **multi-user trial**: the owner plus at least one human, 4 weeks. Measure the newcomer's first traced change with an outside newcomer.
+- **12.** Copilot and Gemini CLI `agent run` adapters (B2).
+- **13.** The release feed plus signing: kernel and modules (R7, R4.9 N4), desktop signing and auto-update.
+- **14.** After a clean trial: **declare format 1.0**. That flips the manual-change detection and legacy pointers to errors. Then tag 1.0.
 
 **Ongoing.** These run alongside every phase:
 

@@ -1,9 +1,7 @@
 ---
-title: "Technical manual: the fleet and its deployment runbook"
+title: "00 — The catalyst fleet: overview, deployment runbook and index"
 classification: Public
 ---
-
-# 00 — The catalyst fleet: overview, deployment runbook and index
 
 This manual is the technical companion of the guide. The guide explains what catalyst is; this manual is for the
 engineer who installs, operates and releases every part of it from nothing. It describes the fleet as it stands on

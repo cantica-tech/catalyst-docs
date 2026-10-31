@@ -1,0 +1,6 @@
+{
+  "config": { "extends": ".standards/markdownlint.jsonc" },
+  // what git ignores (the site build, the private docs/kb) is never linted
+  "gitignore": true,
+  "ignores": ["**/node_modules/**", "**/dist/**", "**/out/**"]
+}

@@ -3,8 +3,6 @@ title: "80 — Oddities, gotchas and sharp edges"
 classification: Public
 ---
 
-# 80 — Oddities, gotchas and sharp edges
-
 This chapter lists what surprises a newcomer to the catalyst fleet: known bugs and their fixes, CI quirks, environmental requirements, historical traps, and design choices that look wrong but are deliberate (with their rationale). It reflects the state on **2026-10-31**: kernel **0.119.2**, SE module 3.4.1, KBM 0.6.1, catalyst-ui 0.69.0, catalyst-users 0.10.0, catalyst-mcp 0.4.0, catalyst-kb-engine 0.16.0.
 
 Each entry gives:
@@ -44,7 +42,7 @@ Every source is a public repository. `cantica-tech/<repo>:<path>` is a file in o
 | # | Oddity | Symptom | Cause / rationale | Fix / workaround | Source |
 |---|---|---|---|---|---|
 | 0.1 | **Branch models differ per repository** | You push to the wrong branch, or look for a `release` branch that does not exist. | Kernel, UI and catalyst-users use **development → main → release**, each step a PR, then a tag. The SE module, catalyst-mcp and catalyst-kb-engine work on development and tag **on main**, with no release branch; catalyst-docs has development and main but no tags. KBM has **no development branch at all**; the distribution repo is main-only. | Check `git branch -a` before releasing. | each repository's branches |
-| 0.2 | **Two tag-naming eras** | `git tag \| sort -V \| tail` shows `v0.34.0` (kernel) or `v0.30.0` (UI) as "latest". | Early tags carry a `v` prefix; later ones do not (kernel `0.119.2`, UI `0.69.0`). | Use `git tag \| grep -v '^v' \| sort -V`. | tags of cantica-tech/catalyst and cantica-tech/catalyst-ui |
+| 0.2 | **Two tag-naming eras** | <code>git tag \&#124; sort -V \&#124; tail</code> shows `v0.34.0` (kernel) or `v0.30.0` (UI) as "latest". | Early tags carry a `v` prefix; later ones do not (kernel `0.119.2`, UI `0.69.0`). | Use <code>git tag \&#124; grep -v '^v' \&#124; sort -V</code>. | tags of cantica-tech/catalyst and cantica-tech/catalyst-ui |
 | 0.3 | **The criterion lives outside the project** (law L5) | A project holds only `catalyst.toml`; there is no `.criterion/` folder, no Taskfile and no `.claude/commands`. | Decision A1 (revised 2026-10-08, design 13). The criterion lives at `$HOME/.catalyst/projects/<name>/criterion`, with its own `uv` runtime. | Find it with `catalyst where`; ready it with `catalyst open`. Never add catalyst files to a host project. | cantica-tech/catalyst:docs/design/13-criterion-home-requirement.md; docs/decisions.md A1 |
 | 0.4 | **IDs are permanent, and citing one early burns it** (law L7) | Gaps in a deployment's numbering. | Citing an ID (in a journal intent, a commit, prose) before `catalyst new` allocates it can reserve that number, and IDs are never reused. Each ID is suffixed with the creator's userid hash. | Name an ID only after `catalyst new` prints it. Never "fix" gaps. | kernel `INVARIANTS.md` L7 |
 | 0.5 | **`Fixed` is not closed** | Backlogs list as "open" bugs that were fixed and released long ago. | In the SE module's `module.yaml`, BUG's closed states are only `Closed` and `WontFix`. `Fixed` means "fix landed, not yet verified". | Verify each fix, then `catalyst status set <BUG> Closed`, then regenerate the backlog. Never hand-edit `BACKLOG.md` (L6). | cantica-tech/catalyst-software-engineering:module.yaml |
@@ -303,7 +301,7 @@ flowchart LR
 | 2.1 | **No criterion of its own** | You can't find SE's requirements anywhere in its own repo. | Its changes are tracked as work items in catalyst's own record. | Commit messages cite them. | git log |
 | 2.2 | **Release zips committed in the module repo** | `catalyst/modules/software-engineering/v1.0.0`, `v2.0.0`, and a duplicate `catalyst/module/…/v1.0.0`. | An old release flow wrote distribution-layout output into the repo. | The distribution repo is the real home; these can be deleted or gitignored. | repo tree |
 | 2.3 | **`ROADMAP.md` is a stale "Draft/Proposed" plan** | It describes the module extraction (done since module format v3, 3.0.0) and names `.claude/commands/`, `*.catalyst` pointers and `schemas/`. | Never retired. | Read it as history. | ROADMAP.md |
-| 2.4 | **Aliases are load-bearing** | The 3.1.0 regression broke `/create-*` and `/roadmap-add\|update\|merge\|remove`; fixed in 3.1.1. 3.1.0 is not in the distribution repo. | ADR-020/021 keep old names as aliases. | Test aliases on every release. | commit `23cea3c`; cantica-tech/catalyst:docs/adr/ADR-020, ADR-021 |
+| 2.4 | **Aliases are load-bearing** | The 3.1.0 regression broke `/create-*` and <code>/roadmap-add\&#124;update\&#124;merge\&#124;remove</code>; fixed in 3.1.1. 3.1.0 is not in the distribution repo. | ADR-020/021 keep old names as aliases. | Test aliases on every release. | commit `23cea3c`; cantica-tech/catalyst:docs/adr/ADR-020, ADR-021 |
 | 2.5 | **Minimum-kernel pins** | 3.0.0 needs ≥ 0.57.0; 3.3.0 and 3.4.x need ≥ 0.83.0. | See 1.4.1. | — | module.yaml |
 | 2.6 | **CI is lint only** | No tests run on the module itself. | It is exercised by the kernel's Deployment Rules job instead (1.1.2). | — | .github/workflows/standards.yml |
 | 2.7 | **Closed states are narrow** | BUG: `Closed`/`WontFix`; REQ: `Completed`/`Abandoned`; STEP: `done`/`abandoned`; TEST: `Passing`. A BUG reaches Fixed or Closed only with its steps closed; a REQ completes only with ≥ 1 step, all closed (law SE-L1). | — | — | module.yaml |
@@ -316,7 +314,7 @@ flowchart LR
 | 3.2 | **Needs kernel ≥ 0.107.0** | Older kernels refuse the module. | It relies on guards with field conditions, sources falling due, gated builds, and a module's own `catalyst.toml` never shipping. It is the CI proof that the kernel names no module type. | — | README.md |
 | 3.3 | **Old module id `cantica-knowledge-base`** | 0.1.0 was published under another id (renamed in 0.2.0); legacy zips are under `catalyst/modules/`. | Rename in B1's revision. | — | cantica-tech/catalyst:docs/decisions.md B1; repo tree |
 | 3.4 | **`None` as an enum value** | A `None` hosted-embedding classification failed check. | See 1.4.6; the value is now `Local only`. | — | module.yaml |
-| 3.5 | **Stale design text** | `docs/engine-and-onboarding.md` §6 still lists "open questions" that have all been answered: the engine is its own repo; `Document base: Static\|Dynamic` exists since 0.5.0; the default embedding is `nomic-embed-text`, local; Pydantic AI with the criterion as durable state. | Not refreshed. | — | docs/engine-and-onboarding.md |
+| 3.5 | **Stale design text** | `docs/engine-and-onboarding.md` §6 still lists "open questions" that have all been answered: the engine is its own repo; <code>Document base: Static\&#124;Dynamic</code> exists since 0.5.0; the default embedding is `nomic-embed-text`, local; Pydantic AI with the criterion as durable state. | Not refreshed. | — | docs/engine-and-onboarding.md |
 | 3.6 | **No CI, no `.standards/`** | — | — | — | repo |
 | 3.7 | **Designed to run alone or beside any module** | A KB can be built off any project, including an SE-governed one. | Law L9 plus the second-module decision. | — | cantica-tech/catalyst:docs/decisions.md B1 |
 

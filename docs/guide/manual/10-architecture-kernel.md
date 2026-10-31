@@ -1,9 +1,7 @@
 ---
-title: "catalyst kernel: architecture"
+title: "10 — catalyst kernel: architecture"
 classification: Public
 ---
-
-# 10 — catalyst kernel: architecture
 
 Hand-off reference for the catalyst kernel (GitHub `cantica-tech/catalyst`, kernel **0.119.2**, on-disk format **1.0-rc**), its CLI, its on-disk formats, and how it is built, released and distributed. Its companion, `20-deploy-kernel.md`, gives the install and operate procedure.
 
@@ -217,7 +215,7 @@ flowchart LR
 
 ## 5. The source repository layout (`cantica-tech/catalyst`)
 
-```
+```text
 catalyst/
   BOOTSTRAP.md            single install entry point (laws, capabilities, install, anti-drift, assent)
   CLAUDE.md AGENT.md SYSTEM.md   thin per-agent shims pointing at BOOTSTRAP.md
@@ -383,24 +381,24 @@ flowchart TB
 | `identity/` | **Vendored catalyst-users core** (release in `identity/VERSION`): `oidc.py` (discovery, device flow RFC 8628, refresh, revoke, introspection), `session.py`, `credentials.py` (owner-only token files), `keychain.py` (macOS `security` / libsecret), `config.py` (settings precedence), `admin.py` (Keycloak admin REST with the caller's token), `providers/keycloak.py`, `providers/static.py` (tests only). Never edit it here: change catalyst-users, then run `scripts/vendor_identity.py`. |
 | `admin.py` | `user`/`role` (these now **refuse**: people live in catalyst-users), `freeze`/`unfreeze`, `definition migrate`. |
 | `membership.py` | Membership ledger of a served criterion (`catalyst serve`). |
-| `landing.py` | Landing policies (`IAM/landing.json`; `landing init|show`). |
+| `landing.py` | Landing policies (`IAM/landing.json`; <code>landing init&#124;show</code>). |
 | `store.py` | Store abstraction: drivers `home` (working form) and `local` / `git` / `serve` (sharing). |
-| `criterion.py` | Git sharing: `criterion create|join|status|push|sync|integrity|protect`, `.gitattributes`, the criterion CI workflow. |
+| `criterion.py` | Git sharing: <code>criterion create&#124;join&#124;status&#124;push&#124;sync&#124;integrity&#124;protect</code>, `.gitattributes`, the criterion CI workflow. |
 | `serve.py`, `serve_landing.py` | `catalyst serve`: HTTP server (SQLite) through which several people share criteria; landing accepted batches into the git repository. |
 | `open.py` | `catalyst open`: join a missing criterion, fill its runtime, install the launcher, report a to-do. |
 | `runtime.py` | Runtimes per version in `$CATALYST_HOME/runtimes/<ver>/`, the launcher, the criterion `.venv`. |
 | `move.py` | `move --to-home` (legacy → home store), `move --name` (rename a project). |
 | `migrate.py` | `catalyst migrate`: layout, template and judgment steps a deployment is behind on. |
-| `sync.py` | `sync plan|apply`: re-vendor the CLI, refresh the module, recompose, retire old agent files, journal one `/sync-framework` entry. |
-| `modules.py` | Module release trees, `modules/modules.json`, `module install|upgrade|list|verify|available`. |
+| `sync.py` | <code>sync plan&#124;apply</code>: re-vendor the CLI, refresh the module, recompose, retire old agent files, journal one `/sync-framework` entry. |
+| `modules.py` | Module release trees, `modules/modules.json`, <code>module install&#124;upgrade&#124;list&#124;verify&#124;available</code>. |
 | `versions.py` | Version-range checks (`>=0.83.0`). |
-| `agents.py` | `agent install|uninstall|status` for claude-code, copilot, vscode, cursor, codex, gemini. |
+| `agents.py` | <code>agent install&#124;uninstall&#124;status</code> for claude-code, copilot, vscode, cursor, codex, gemini. |
 | `mcp.py` | `catalyst mcp`: stdio MCP server (prompts = §4 commands, tools `catalyst` and `command`, instructions = laws). |
 | `run.py` | `agent run`: dispatches a command to the project's agent non-interactively (`claude -p`), streaming events and cost. |
 | `spec.py` | `catalyst spec <command>`: only the part of CODE-OF-CONDUCT §4 a command needs. |
 | `laws.py` | Session brief and `catalyst why`. |
 | `views.py`, `history.py`, `impact.py`, `inbox.py` | Read-only views: `list`, `view`, `backlog`, `graph`, `journal show`, history, `impact`, `inbox`. |
-| `analysis.py` | Four-eyes analysis lifecycle (`analysis start|record|diff|reconcile|decide|close`). |
+| `analysis.py` | Four-eyes analysis lifecycle (<code>analysis start&#124;record&#124;diff&#124;reconcile&#124;decide&#124;close</code>). |
 | `report.py`, `audit.py`, `badge.py` | Usage report, audit pack, README badge SVG. |
 | `workspace.py` | VS Code workspace meta criterion. |
 | `generate.py` | Item templates and definitions generated from a v3 `module.yaml`. |
@@ -412,7 +410,7 @@ flowchart TB
 
 ### 7.1 Project (product repository)
 
-```
+```text
 <project root>/
   catalyst.toml            the ONLY tracked catalyst file (INV-6, L5)
   .catalystignore          optional, any directory: opt files/dirs out of governance
@@ -457,7 +455,7 @@ flowchart LR
 
 ### 7.2 Catalyst home
 
-```
+```text
 $HOME/.catalyst/                       ($CATALYST_HOME overrides)
   bin/catalyst, bin/catalyst.cmd       launcher (stdlib Python script; .cmd for Windows)
   machine                              random machine id (journal shard suffix), never the hostname
@@ -477,7 +475,7 @@ $HOME/.catalyst/                       ($CATALYST_HOME overrides)
 
 ### 7.3 Criterion (observed after `init`, module software-engineering 3.4.1)
 
-```
+```text
 $HOME/.catalyst/projects/<name>/criterion/
   .git/                         own history; branch `main` after init (shared: `criterion`)
     catalyst/                   local state, never committed or pushed:
@@ -528,7 +526,7 @@ $HOME/.catalyst/projects/<name>/criterion/
 
 Every entity folder has this shape (INV-20):
 
-```
+```text
 <folder>/README.md
 <folder>/<folder>.md                         generated index
 <folder>/templates/README.md
@@ -939,6 +937,7 @@ flowchart TD
 ```
 
   A PR therefore cannot change its own gate. It needs Python 3.11 on the runner and nothing else.
+
 - **Product CI** may clone the criterion into a temporary `CATALYST_HOME` and run `catalyst.pyz trace <range>` (`CLI.md`). A private criterion needs a deploy key or token.
 - **Landing policy** (`IAM/landing.json`, kernel `standard` when absent; `catalyst landing init --policy standard|open|reviewed|host`) decides grouping, review and merge for changes landing through a server.
 
