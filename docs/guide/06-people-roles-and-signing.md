@@ -36,7 +36,8 @@ grants count. Every writing command checks the signer's grants and refuses one t
 that grant.
 
 **Reading is never restricted.** Everyone who has the criterion can read all of it. Writes are what is controlled.
-(Who may see which entities is designed, not yet built: see [Working together](07-working-together.md).)
+(Who may reach a project is its membership, built on the server; who may see which entities inside it is designed,
+not yet built: see [Working together](07-working-together.md).)
 
 ## The default roles
 
