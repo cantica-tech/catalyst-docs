@@ -3,8 +3,6 @@ title: "70 — catalyst-ui: Catalyst Studio (VS Code extension, desktop app, Stu
 classification: Public
 ---
 
-# 70 — catalyst-ui: Catalyst Studio (VS Code extension, desktop app, Studio SPA)
-
 Hand-off chapter for `cantica-tech/catalyst-ui`. It describes what the repository contains and how it works, how to
 build, test, package and release each deliverable, and what tends to break. Everything here was read from the
 repository at product version **0.69.0** (branch `development`, HEAD `1ec35eb`, 2026-10-31) unless marked
@@ -90,7 +88,7 @@ flowchart LR
 
 ## 2. Repository layout
 
-```
+```text
 catalyst-ui/
 ├── package.json              # workspaces: packages/*; root scripts lint/format:check/typecheck/test; engines node >=20
 ├── package-lock.json         # npm ci source of truth
@@ -725,7 +723,7 @@ catalyst's own commands are **not** here: `catalyst task` lists them from the cr
 | `test`                                 | `npm test` → `npm run test --workspaces --if-present`                                                  | host-vscode rebuilds (its `pretest`)                | all suites pass                              |
 | `ci`                                   | `lint`, `format:check`, `typecheck`, `test` (what `ci.yml`'s first job runs, plus `standards:lint`)    | as above                                            | exit 0                                       |
 | `build:vscode-extension`               | in `packages/catalyst-host-vscode`: `npm run package`                                                  | `packages/catalyst-host-vscode/catalyst-host-vscode.vsix` (gitignored) | `unzip -l …vsix` lists `extension/dist/extension.js`, `webview.js`, `studio/index.html` |
-| `install:vscode-extension`             | `build:vscode-extension` then `"$CODE_BIN" --install-extension catalyst-host-vscode.vsix`             | installs into the local VS Code                     | `code --list-extensions --show-versions \| grep catalyst-host-vscode` |
+| `install:vscode-extension`             | `build:vscode-extension` then `"$CODE_BIN" --install-extension catalyst-host-vscode.vsix`             | installs into the local VS Code                     | <code>code --list-extensions --show-versions \&#124; grep catalyst-host-vscode</code> |
 | `install:vscode-extension:unsigned`    | build, `node scripts/enable-unsigned-install.js` (sets `extensions.verifySignature: false` in your **real** VS Code user settings), install | user `settings.json` edited | as above |
 | `publish:vscode-extension`             | in host-vscode: `npm run publish` = build + bundle + `npx vsce publish --no-dependencies`              | **public Marketplace release** — owner request only | Marketplace page version                    |
 | `publish:vscode-extension:release`     | refuses unless `git describe --tags --exact-match HEAD` is a tag equal to `package.json` version (with or without `v`); then `publish:vscode-extension`; then `release:vsix:publish` with `PUBLISH_DIR` default `../cantica-tech`, `KERNEL_VERSION` default `catalyst.kernelVersion` | Marketplace + commit/push in the distribution repo | — **do not run unless the owner asks** |

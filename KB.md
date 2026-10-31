@@ -41,7 +41,8 @@ the realm build reads every source and is kept in private storage. Embedding run
 
 ```text
 KB.md       this file
-docs/       the guide's written pages, public only, reviewed before they land (none yet)
+docs/       the guide's written pages, public only, reviewed before they land: docs/guide (twelve pages) and
+            its technical manual, docs/guide/manual (ten pages)
 pointers/   pointers to outside documents, mirroring docs/ (none yet)
-builds/     one directory per public build version, its manifest only (none yet)
+builds/     none kept: the site serves each public build with its manifest, recorded as a KBUILD- (record-site)
 ```

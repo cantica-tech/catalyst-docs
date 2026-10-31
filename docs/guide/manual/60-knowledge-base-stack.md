@@ -3,8 +3,6 @@ title: "60 — The knowledge-base stack: catalyst-kb-engine and catalyst-docs"
 classification: Public
 ---
 
-# 60 — The knowledge-base stack: catalyst-kb-engine and catalyst-docs
-
 This chapter covers the two repositories that turn documents and catalyst criteria into knowledge bases that
 models can read: the **engine** (`cantica-tech/catalyst-kb-engine`) and catalyst's **central documentation** built
 with it (`cantica-tech/catalyst-docs`). The knowledge-base **module** (KBM, `cantica-tech/catalyst-knowledge-base`)
@@ -22,15 +20,15 @@ Sources are cited as `cantica-tech/<repo>:<path>`. Commands were taken from the 
 
 ## Contents
 
-1. [The stack at a glance](#1-the-stack-at-a-glance)
-2. [Architecture and data flow](#2-architecture-and-data-flow)
-3. [catalyst-kb-engine: package, configuration, formats](#3-catalyst-kb-engine-package-configuration-formats)
-4. [catalyst-kb-engine: full CLI reference](#4-catalyst-kb-engine-full-cli-reference)
-5. [catalyst-docs: the documentation project and its pipeline](#5-catalyst-docs-the-documentation-project-and-its-pipeline)
-7. [Deployment from scratch](#7-deployment-from-scratch)
-8. [How-tos](#8-how-tos)
-9. [Verification and common failures](#9-verification-and-common-failures)
-10. [Oddities, version skew, open items](#10-oddities-version-skew-open-items)
+- [1. The stack at a glance](#1-the-stack-at-a-glance)
+- [2. Architecture and data flow](#2-architecture-and-data-flow)
+- [3. catalyst-kb-engine: package, configuration, formats](#3-catalyst-kb-engine-package-configuration-formats)
+- [4. catalyst-kb-engine: full CLI reference](#4-catalyst-kb-engine-full-cli-reference)
+- [5. catalyst-docs: the documentation project and its pipeline](#5-catalyst-docs-the-documentation-project-and-its-pipeline)
+- [7. Deployment from scratch](#7-deployment-from-scratch)
+- [8. How-tos](#8-how-tos)
+- [9. Verification and common failures](#9-verification-and-common-failures)
+- [10. Oddities, version skew, open items](#10-oddities-version-skew-open-items)
 
 ---
 
@@ -720,7 +718,7 @@ Triggers: push to `main`, a daily cron `17 5 * * *` (UTC), and `workflow_dispatc
 | 4 | Clone public sources | Python loop over `site/sources.json`: `git clone --depth 1 <location>.git _build/src/<name>` | shallow clones of GitHub's default branches, so unpushed work never reaches the site |
 | 5 | Read and build folders | `GH_TOKEN=${{ github.token }}`. `read-sources "$KB" _build/staging --sources site/sources.json --projects-dir _build/src --public-only`. `cp -R docs/guide _build/staging/docs/guide`. `build-folders _build/staging _build/public --kb "$KB" --version "${GITHUB_SHA::12}" --floor Public --ceiling Public --content-commit "$GITHUB_SHA"` | `_build/public` (folders build) |
 | 6 | Publication check | `publish-check _build/public --sources site/sources.json` | fails the job on any non-public content |
-| 7 | Ollama | `curl -fsSL https://ollama.com/install.sh \| sh`. Start `ollama serve` if `/api/version` does not answer. `ollama pull nomic-embed-text` | the local embedding model in the runner |
+| 7 | Ollama | <code>curl -fsSL https://ollama.com/install.sh \&#124; sh</code>. Start `ollama serve` if `/api/version` does not answer. `ollama pull nomic-embed-text` | the local embedding model in the runner |
 | 8 | Vector DB | `OLLAMA_BASE_URL=http://localhost:11434/v1`. Download the live `vectors/catalyst-vectors.tar.gz` into `_build/previous`. If that works, add `--previous _build/previous/catalyst-vectors`. Then `build-vectors _build/staging _build/vectors/catalyst-vectors … --floor Public --ceiling Public --hosted-up-to "Local only" --local-model ollama:nomic-embed-text --document-prefix "search_document: " --query-prefix "search_query: " --content-commit "$GITHUB_SHA"`, then `publish-check` on it | `_build/vectors/catalyst-vectors` |
 | 9 | Make the site | `site _build/public _pages --title "catalyst" --intro "…"`. Copy `manifest.json` to `_pages/`. `tar -czf _pages/vectors/catalyst-vectors.tar.gz -C _build/vectors catalyst-vectors`. Copy the vectors manifest. `mkdocs build` | `_site/` |
 | 10 | Pages | `actions/configure-pages@v5`, `actions/upload-pages-artifact@v3` (path `_site`) | the Pages artifact |

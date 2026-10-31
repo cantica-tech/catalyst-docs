@@ -1,9 +1,7 @@
 ---
-title: "Deploying the catalyst kernel and putting a project under catalyst"
+title: "20 — Deploying the catalyst kernel and putting a project under catalyst"
 classification: Public
 ---
-
-# 20 — Deploying the catalyst kernel and putting a project under catalyst
 
 This is the step-by-step procedure for an engineer on a fresh machine. It covers four jobs:
 
@@ -150,7 +148,7 @@ flowchart TD
   V -- "yes" --> OK["install proceeds"]
 ```
 
-```
+```text
 $ python3 kernel/bin/catalyst.pyz init --kernel kernel --name shop --module software-engineering --module-dir se ...
 catalyst: people are catalyst-users' (design 29): pass --identity-issuer <url> and log in first (`catalyst identity login --issuer <url>`)
 exit=1
@@ -418,7 +416,7 @@ catalyst agent status
 
 Observed output:
 
-```
+```text
 <HOME>/.claude/settings.json: set hooks.Stop, hooks.SessionStart
 claude mcp: catalyst added (user scope, ~/.claude.json)
 claude-code  installed  hooks.Stop yes, hooks.SessionStart yes, mcp (user scope) yes
@@ -535,7 +533,7 @@ sequenceDiagram
 
 Observed output (paths shortened):
 
-```
+```text
 catalyst: created refs/catalyst/journal in <project> (pins the blobs the journal records so `git gc` keeps them; local only unless `journal pin --share`)
 catalyst: created refs/catalyst/journal in <HOME>/.catalyst/projects/shop/criterion (…)
 - composed CODE-OF-CONDUCT.md, rules/Rules-of-Rules.md, ACCESS-CONTROL.md, Taskfile.common.yml
@@ -647,7 +645,7 @@ flowchart TD
 
 Observed in the sandbox:
 
-```
+```text
 $ catalyst where
 project    <project> (catalyst.toml, name shop)
 criterion  <HOME>/.catalyst/projects/shop/criterion (home)
@@ -1035,7 +1033,7 @@ flowchart TD
 | Identity | `catalyst identity status` / `whoami` | logged in, grants listed |
 | Agent | `catalyst agent status` | `claude-code installed …` |
 | Sharing | `catalyst share status --fetch` | 0 unpublished, 0 behind |
-| Hooks | `echo '{"session_id":"x","cwd":"'$PWD'"}' \| catalyst hook start --quiet; … \| catalyst hook stop` | exit 0. Observed: a baseline `sessions/x.json` is created. |
+| Hooks | <code>echo '{"session_id":"x","cwd":"'$PWD'"}' \&#124; catalyst hook start --quiet; … \&#124; catalyst hook stop</code> | exit 0. Observed: a baseline `sessions/x.json` is created. |
 | Bare criterion (CI) | `python3 bin/catalyst.pyz --working-copy . check` in the criterion | pass |
 | Explain | `catalyst why L5`, `catalyst why INV-17` | text |
 

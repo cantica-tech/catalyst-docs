@@ -3,8 +3,6 @@ title: "50 — Identity: catalyst-users, Keycloak and catalyst-mcp"
 classification: Public
 ---
 
-# 50 — Identity: catalyst-users, Keycloak and catalyst-mcp
-
 Hand-off chapter for an engineer installing and operating the catalyst fleet's identity layer from nothing: the
 identity provider (a local Keycloak), the `catalyst-users` facade and CLI, how the catalyst kernel signs through it,
 and the `catalyst-mcp` MCP server that orchestrates both.

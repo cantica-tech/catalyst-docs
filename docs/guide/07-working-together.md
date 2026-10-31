@@ -82,18 +82,19 @@ of people could leak.
 
 Membership lets a person reach the project. It grants no command: grants stay the provider's.
 
-## Who sees what: visibility (designed, not yet built)
+## Who sees what: visibility (partly built)
 
-Today everyone who has the criterion can read all of it. Design 30 describes what comes next:
+Today everyone who has the criterion can read all of it. What is built of design 30 is the door: through membership
+(above), once a project's ledger is open, the server lets in only the provider's tokens, and of those only the
+project's admins and members, with no guest and no shared link. The rest is designed, not yet built:
 
-- **The realm**: no one outside the provider's realm has access to anything, with no guest and no shared link.
 - **Classification and clearance**: every entity gets a `Classification`, and every person a clearance (a grant
   `clear:<Level>`). An entity is visible when it belongs to the project (or is linked to something visible there) and
   its classification is at or below the person's clearance.
 - **Elevation**: an Admin can raise one person's clearance for one entity assigned to them.
 - **User groups**: groups of people inside a project, kept on the server like membership.
 - **Absent, not hidden**: an entity a person may not see is never listed, returned or counted.
-- **The server is the boundary**: reading through `catalyst serve` is where visibility is enforced.
+- **The server is the boundary**: every read through `catalyst serve` filtered by what the person may see.
 
 ## Where to go next
 
