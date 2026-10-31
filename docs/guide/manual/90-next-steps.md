@@ -50,6 +50,7 @@ Each item gives its status, its horizon and a source. Sources use the same citat
 - [6. catalyst-users](#6-catalyst-users--cantica-techcatalyst-users)
 - [7. catalyst-mcp](#7-catalyst-mcp--cantica-techcatalyst-mcp)
 - [8. catalyst-kb-engine](#8-catalyst-kb-engine--cantica-techcatalyst-kb-engine)
+  - [8.1 Embedding without Ollama](#81-embedding-without-ollama)
 - [9. catalyst-docs](#9-catalyst-docs--cantica-techcatalyst-docs)
 - [10. Distribution repo and release infrastructure](#10-distribution-repo-and-release-infrastructure)
 - [11. Open points in the public decision records](#11-open-points-in-the-public-decision-records)
@@ -302,11 +303,42 @@ flowchart LR
 
 | Item | Status | Horizon | Source |
 |---|---|---|---|
-| Merge development to main (4 chore commits) | Open | Now | git |
+| Merge development to main | Done 2026-10-31 (PR #16, release 0.16.1) | — | git |
 | **The 7 search misses** (recall 0.865@10): better rule titles in the words people ask with, or a synonym glossary; a larger expansion model is untried | Open; content work, not engine work | Next | cantica-tech/catalyst:docs/results/2026-10-30-search-query-expansion.md |
 | Live check of `serve` with the API client's secret: a realm token is answered and a foreign token refused | Open | Now | cantica-tech/catalyst:docs/results/2026-10-26-catalyst-docs-phase-6.md |
 | Speed up full reads (about 2.5 min) | Idea, needs a kernel batch read | Later | docs/catalyst-docs-progress.md |
-| Align ruff with the standard (the lock resolves `>=0.7` to 0.17.2) | Open | Next | pyproject.toml; uv.lock |
+| Align ruff with the standard | Done 2026-10-31: `ruff==0.16.10` pinned and run by CI (0.16.1) | — | pyproject.toml |
+| `serve` takes `localhost` and `127.0.0.1` as one loopback host | Done 2026-10-31 (0.16.1) | — | README |
+
+### 8.1 Embedding without Ollama
+
+Today every vector build embeds through Ollama (`ollama:nomic-embed-text`), reached over Ollama's OpenAI-compatible
+HTTP API at `OLLAMA_BASE_URL` (default `http://localhost:11434/v1`). The engine needs no Ollama: it takes any Pydantic
+AI embedding model, `--local-model` for what may embed private content, `--hosted-model` within the knowledge base's
+"Hosted embedding up to" (catalyst's is "Local only").
+
+| Alternative | How | Where it runs | Trade-off |
+|---|---|---|---|
+| **sentence-transformers** | `--local-model sentence-transformers:nomic-ai/nomic-embed-text-v1.5` (or a small model such as `all-MiniLM-L6-v2`) | In the engine's own process (PyTorch); no daemon, no HTTP | Simplest for CI and containers; no engine extra installs it yet, and PyTorch is a large dependency |
+| **A local OpenAI-compatible server**: Hugging Face Text Embeddings Inference, vLLM, llama.cpp `llama-server --embeddings`, LM Studio, LocalAI | `OPENAI_BASE_URL=http://localhost:<port>/v1` and `--local-model openai:<model>` | A local server, as Ollama is | The same path as today; TEI or vLLM on a GPU is the fastest for large builds. The engine trusts `--local-model` and does not check that the URL is local |
+| **OpenAI / Azure OpenAI** | `--hosted-model openai:text-embedding-3-small` (or `-3-large`), `OPENAI_API_KEY` | Hosted | Allowed only within `--hosted-up-to`; with `Public`, a public build could embed hosted while private builds stay local |
+| **Cohere, Voyage AI, Google, AWS Bedrock** | Pydantic AI's `cohere:`, `voyageai:`, `google…:`, `bedrock:` embedding models | Hosted | Their client libraries are not among the engine's extras yet |
+
+What a switch costs:
+
+- **A full re-embed**: `--previous` reuses a vector only when the input and the model are the same. Even the same
+  nomic model differs between Ollama (a quantised build) and sentence-transformers (full precision).
+- **Search follows the build**: `search`, `mcp` and `serve` embed the question with the model the build's
+  `manifest.json` names, so that model must be available wherever people search.
+- **The public vector tarball**: its README names the query model, so consumers would change too; the Pages workflow
+  would drop its Ollama install (sentence-transformers downloads its weights instead).
+
+| Item | Status | Horizon | Source |
+|---|---|---|---|
+| A `[local]` extra (sentence-transformers) and a test, so a build needs no Ollama daemon | Proposed | Next | this section; cantica-tech/catalyst-kb-engine:src/catalyst_kb_engine/build/vectors.py |
+| A check that a `--local-model` served over HTTP really is on a loopback or private address | Proposed | Next | same |
+| Extras for the hosted providers (Cohere, Voyage AI, Google, Bedrock), if a knowledge base allows hosted embedding | Idea | Later | Pydantic AI's embedding models |
+| Choose: keep Ollama, move to sentence-transformers (no daemon), or a GPU server (TEI/vLLM) for speed; then one full re-embed of each build | Owner decision | Next | — |
 
 ## 9. catalyst-docs — cantica-tech/catalyst-docs
 
