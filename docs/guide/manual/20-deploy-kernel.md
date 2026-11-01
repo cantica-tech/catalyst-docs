@@ -10,7 +10,7 @@ This is the step-by-step procedure for an engineer on a fresh machine. It covers
 3. Share its criterion, and adopt it on a second machine.
 4. Upgrade, verify, and roll back.
 
-Read `10-architecture-kernel.md` first for the concepts. Sources are cited as `cantica-tech/<repo>:<path>`. **Observed** means the step was run during this documentation in a throwaway sandbox (kernel 0.119.2 and module `software-engineering` 3.4.1 from the distribution repository, `HOME` pointed at a sandbox, test identity). Every observed output below comes from that run.
+Read `10-architecture-kernel.md` first for the concepts. Sources are cited as `cantica-tech/<repo>:<path>`. **Observed** means the step was run during this documentation in a throwaway sandbox (kernel 0.119.2 and module `software-engineering` 3.4.1 from the distribution repository, `HOME` pointed at a sandbox, test identity). Every observed output below comes from that run. The 2026-11-01 refresh marks what kernels 0.120.0 and 0.121.0 changed (from `cantica-tech/catalyst:CHANGELOG.md` and `framework/kernel/CLI.md`); those changes were not re-run in the sandbox. Current releases: kernel 0.121.0, `software-engineering` 3.6.0.
 
 Conventions:
 
@@ -166,6 +166,9 @@ docker compose up -d                      # Keycloak 26.4.0 on 127.0.0.1:8080, r
 uv run catalyst-users setup               # interactive: provider, settings, admin username, a password *command*
 ```
 
+Since catalyst-users 0.11.0, `setup` exits `1` when the provider is unreachable: it still writes the settings, unchecked,
+and says to run `setup --force` once the provider is up. The dev realm keeps a login 12 hours idle and 7 days at most.
+
 What `setup` achieves:
 
 - It creates or uses the realm `catalyst` and makes you its admin (group `catalyst-admins`).
@@ -231,6 +234,7 @@ uv run catalyst-users criteria add <project-name> --admin <you>
 | Keycloak not up yet | Wait until `curl` succeeds. |
 | `NoSettingsError` | Run `setup`. |
 | `--system` fails | The `password_command` must print the password as its first line. |
+| `setup` exits `1` | The provider is down (0.11.0): start Keycloak, then `setup --force`. |
 | Port 8080 already taken | Free the port, or point `--provider url` and later `--identity-issuer` at the port you chose. |
 
 Keycloak keeps its data in `.keycloack/` on the host; delete it to start from the realm file again.
@@ -246,7 +250,7 @@ catalyst identity login --issuer http://localhost:8080/realms/catalyst
 catalyst identity whoami --issuer http://localhost:8080/realms/catalyst
 ```
 
-This is the OIDC device flow against the public client `catalyst-cli`: open the link and confirm the code. Tokens are stored owner-only in `$CATALYST_HOME/identity/<hash>.json`, never in a project or criterion. If you skip the login, the system account from 2.1 signs, provided its issuer equals the pointer's.
+This is the OIDC device flow against the public client `catalyst-cli`: open the link and confirm the code. Without a browser, since 0.120.0: `catalyst identity login --password --username <u> [--password-command "<command>"]` (the password from the command, else one line of standard input, else asked without echo; never an argument). Tokens are stored owner-only, never in a project or criterion: in catalyst-users' credentials file when this machine's catalyst-users is set up for the same provider and login client (one login for both tools; a logout from either ends both), else in `$CATALYST_HOME/identity/<hash>.json`. If you skip the login, the system account from 2.1 signs, provided it names the same provider (compared by canonical issuer since 0.120.0: `localhost`, `127.0.0.1` and `::1` are one host). `catalyst hook start` says at a session's start when no one is logged in.
 
 The login, step by step:
 
@@ -277,8 +281,8 @@ You have two options.
 
 ```sh
 git clone git@github.com:cantica-tech/cantica-tech.git            # public; branch main
-ls cantica-tech/catalyst/kernel/            # v0.32.0 … v0.119.2
-ls cantica-tech/catalyst/modules/software-engineering/   # … v3.4.1
+ls cantica-tech/catalyst/kernel/            # v0.32.0 … v0.121.0
+ls cantica-tech/catalyst/modules/software-engineering/   # … v3.6.0 (the only place module releases live)
 mkdir -p ~/catalyst-dl/kernel ~/catalyst-dl/se
 (cd ~/catalyst-dl/kernel && unzip -q <dist>/catalyst/kernel/v0.119.2/kernel-v0.119.2.zip)
 (cd ~/catalyst-dl/se     && unzip -q <dist>/catalyst/modules/software-engineering/v3.4.1/software-engineering-v3.4.1.zip)
@@ -292,7 +296,7 @@ Contents:
 - Each kernel version directory also holds a loose `catalyst.pyz` and `manifest.json`.
 - Keep the **previous** version's zip available in the same `…/v<ver>/kernel-v<ver>.zip` layout. `sync` uses it as the three-way merge base (§13).
 
-Compatibility: SE 3.4.1 requires kernel `>=0.83.0` (`module.yaml` `kernel_version`). `init` refuses a pair that is out of range.
+Compatibility: SE 3.4.1 (and 3.6.0) requires kernel `>=0.83.0` (`module.yaml` `kernel_version`). `init` refuses a pair that is out of range.
 
 The two ways to get a kernel and a module, and the flags they feed:
 
@@ -339,7 +343,7 @@ python3 dist/catalyst.pyz --version     # catalyst <version.txt>+g<12-char HEAD>
 - **What it achieves:** produces the single-file CLI with the kernel ETDs embedded and build identity stamped. `.dirty` means `scripts/`, `framework/kernel/entities` or `version.txt` differ from HEAD.
 - **Files created:** `dist/catalyst.pyz` (git-ignored).
 - **Run from source without building:** `task catalyst -- <args>`, or `PYTHONPATH=scripts python3 -m catalyst <args>`. `--kernel` then defaults to the checkout's `framework/kernel`.
-- **Common failure:** with a vendored pyz, omitting `--kernel` gives `catalyst: pass --kernel <framework/kernel of a catalyst checkout or release>` (exit 2). A zipapp knows no kernel directory of its own.
+- **Common failure (before 0.120.0):** with a vendored pyz, omitting `--kernel` gave `catalyst: pass --kernel <framework/kernel of a catalyst checkout or release>` (exit 2). Since 0.120.0 every `catalyst.pyz` carries its `framework/kernel` (REQ-000106): with no `--kernel`, `init` and `module install|upgrade` use the checkout's kernel, else the bundled one, so `init` also runs from the installed launcher.
 
 What `task build:cli` puts into the zipapp:
 
@@ -516,7 +520,7 @@ sequenceDiagram
 | `--module <id>` | Active (first) module | **No default.** Without it, init lists `catalyst-<id>` checkouts it finds and exits 2. Observed: `catalyst: pass --module <id> (and --module-dir if it is elsewhere), or --no-module …`. |
 | `--module-dir <dir>` | Module directory (checkout or unzipped release) | Needed unless a `catalyst-<id>` sibling of the project or of catalyst exists. |
 | `--no-module` | Kernel types only; add a module later with `catalyst module install` | — |
-| `--kernel <dir>` | `framework/kernel` of a checkout, or an unzipped kernel release | Defaults to the running checkout. **Required with a pyz.** The version comes from `manifest.json` (release) or `../../version.txt` (checkout). |
+| `--kernel <dir>` | `framework/kernel` of a checkout, or an unzipped kernel release | Defaults to the running checkout, else (since 0.120.0) the kernel bundled in the `catalyst.pyz`; required with a pyz only before 0.120.0. The version comes from `manifest.json` (release) or `../../version.txt` (checkout). |
 | `--identity-issuer <url>` | Writes `IAM/identity.json` `{"provider":"keycloak","issuer":<url>}` | Without it, the provider of this machine's catalyst-users settings is used. Without either, refused. The installer must be verified: logged in, or the system account. |
 | `--identity-client <id>` | Device-grant client | `catalyst-cli` |
 | `--catalyst-client <id>` | Client whose roles carry grants | `catalyst` |
@@ -526,7 +530,7 @@ sequenceDiagram
 | `--test-locations <text>` | Fills `{{TEST_LOCATIONS}}` in `Rules-of-Rules.md` §2 | Placeholder text `*(to be named: …)*` |
 | `--agent <id>` | Recorded as `agent` in `catalyst.toml` | `unknown`. Writes no agent file. |
 | `--no-runtime` | Skip building the runtime and `.venv` | Do it later with `catalyst runtime install` |
-| `--at <dir>` | **Legacy, deprecated**: builds the criterion behind a `.criterion` symlink plus a `<name>.catalyst` pointer | Do not use for new deployments (CI still does) |
+| `--at <dir>` | **Legacy, deprecated**: builds the criterion behind a `.criterion` symlink plus a `<name>.catalyst` pointer | Do not use for new deployments (the kernel's CI stopped using it in 0.120.0) |
 | `--user`/`--project` (global) | `--project <dir>` before `init` installs into another directory | — |
 
 ### 7.3 What it creates (observed, in order)
@@ -732,14 +736,15 @@ flowchart TD
 These steps run only on the owner's yes.
 
 ```sh
-catalyst hook install           # writes .git/hooks/commit-msg (never tracked); an existing commit-msg hook is left for you to merge
+catalyst hook install           # since 0.120.0: prints the hook it would write and exits 3; re-run with --yes on the owner's yes
+catalyst hook install --yes     # writes .git/hooks/commit-msg (never tracked); an existing commit-msg hook is left for you to merge
 git add catalyst.toml
 git commit -m "chore: install catalyst"
 catalyst trace HEAD             # every commit in range cites an ID or is chore:
 ```
 
 - **What the hook does:** every commit message must cite a resolving `<PREFIX>-NNNNNN[-userid]` or rule ID, or start with `chore:` / `chore(scope):`. It also warns on unrecorded changes. To bypass it once, use `git commit --no-verify`, and only with the owner's say-so.
-- **Observed:** `installed <project>/.git/hooks/commit-msg`, a Python script headed `# Installed by \`catalyst hook install\`…`.
+- **Observed:** `installed <project>/.git/hooks/commit-msg`, a Python script headed `# Installed by \`catalyst hook install\`…`. Since 0.120.0 (BUG-000052) the hook's fallback CLI is the launcher for a criterion in catalyst's home.
 
 The commit-msg hook's decision:
 
@@ -781,7 +786,8 @@ What it does:
 - sets `origin` on the criterion and uses the shared branch `criterion` (`--branch` overrides it);
 - writes and commits `.gitattributes` (union merge for journal shards, `IAM/signers.jsonl` and generated indexes), `.github/workflows/catalyst.yml` (the PR gate) and `bin/catalyst.pyz.sha256`;
 - pushes the branch and the pins;
-- with `--protect`, applies GitHub branch protection: PRs required, `catalyst` check required (strict), no force-push or deletion. This needs `gh` with admin rights;
+- with `--protect`, applies GitHub branch protection: PRs required, `catalyst` check required (strict), no force-push or deletion. This needs `gh` with admin rights (`catalyst criterion protect` alone asks first since 0.120.0: exit `3` without `--yes`);
+- signs its journal entries as the verified identity, after checking its `share` grant (since 0.120.0, BUG-000049; before, the git driver signed as the users file's first person, else the fixed actor `catalyst`);
 - writes `repoed = true`, `catalyst_repo = "<name>"`, `catalyst_repo_url` and `criterion_branch = "criterion"` into the project's `catalyst.toml`. This is **staged, not committed**; commit it with the owner's yes (`git commit -m "chore: share the criterion"`).
 
 The first publication, with the assent gate:
@@ -843,14 +849,14 @@ git clone git@github.com:cantica-tech/<product>.git && cd <product>
 python3 <any catalyst.pyz ≥ the pinned kernel, or the launcher if already installed> open
 #   clones catalyst_repo_url (branch criterion_branch) into $HOME/.catalyst/projects/<project_name>/criterion,
 #   fetches the product's journal pins, fills <criterion>/.venv from the criterion's own bin/catalyst.pyz,
-#   installs the launcher if missing, and prints a to-do list (exit 0 = ready, 1 = something left, 2 = not a project)
+#   installs the launcher if missing, and prints a to-do list (exit 0 = ready, 1 = something left, 4 = not a project; 2 before 0.121.0)
 export PATH="$HOME/.catalyst/bin:$PATH"
 catalyst open --agent claude-code        # records this user's agent in $HOME/.catalyst/projects/<name>/agent (never in catalyst.toml)
 catalyst where
 catalyst identity login                  # issuer from IAM/identity.json; or rely on the system account (setup on this machine)
 catalyst identity whoami
 catalyst agent install claude-code       # if not done on this machine
-catalyst hook install                    # optional, per clone
+catalyst hook install --yes              # optional, per clone (asks without --yes)
 catalyst check
 ```
 
@@ -870,7 +876,7 @@ sequenceDiagram
   CLI->>Rem: clone catalyst_repo_url, branch criterion_branch
   CLI->>Prod: fetch the journal pins
   CLI->>CLI: fill criterion .venv from its bin/catalyst.pyz, install the launcher
-  CLI-->>Dev: to-do list, exit 0 ready, 1 left, 2 not a project
+  CLI-->>Dev: to-do list, exit 0 ready, 1 left, 4 not a project
   Dev->>CLI: catalyst open --agent claude-code
   Dev->>IdP: catalyst identity login
   Dev->>CLI: catalyst check
@@ -1126,10 +1132,13 @@ flowchart TB
 
 | Symptom (message) | Cause | Fix |
 |---|---|---|
-| `catalyst: pass --kernel <framework/kernel …>` (exit 2) | Running a pyz without `--kernel` | Add `--kernel <unzipped release>` |
+| `catalyst: pass --kernel <framework/kernel …>` (exit 2) | Running a pre-0.120.0 pyz without `--kernel` | Add `--kernel <unzipped release>`, or use a kernel ≥ 0.120.0 (it bundles its kernel) |
+| Exit `4` | No deployment (since 0.121.0): no `catalyst.toml` at or above the directory or `--project`, or `--working-copy` naming none | Run from the project, or pass `--project`; a script that tested `2` for this tests `4` |
+| Exit `2` | A usage error only (since 0.121.0), or a blocking `hook stop` | Read the message; `--working-copy` given to a command that finds the project itself is refused this way |
 | `catalyst: pass --module <id> … Found: none` (exit 2) | No module given or found | `--module <id> --module-dir <dir>` |
 | `people are catalyst-users' (design 29): pass --identity-issuer …` | No catalyst-users settings and no issuer | §2, then `--identity-issuer` and `identity login` |
-| `no verified identity: not logged in to <issuer>` | Token missing or expired, and no system account | `catalyst identity login` |
+| `no verified identity: not logged in to <issuer>` | Token missing or expired, and no system account | `catalyst identity login` (a token kept under the pre-0.120.0 `url` pointer shape is no longer read: log in once more) |
+| `check` warns that `IAM/identity.json` names its provider by `url` and `realm` | A pre-0.120.0 pointer | `catalyst migrate --apply` (migration 0.120.0) rewrites it as the issuer |
 | `no one is logged in, and the system account cannot sign in` | Keycloak down, or `password_command` failing | Start Keycloak; test `catalyst-users whoami --system` |
 | `--as X: you are logged in as Y` | `--as` names someone else | Sign only as yourself |
 | `a criterion named '<n>' already exists` | Name used on this machine | Choose another `--name`, or `catalyst open` an existing one |
@@ -1143,7 +1152,8 @@ flowchart TB
 | Exit `3` | Assent gate | Show the output to the user; re-run with `--yes` only after their yes |
 | `refs/catalyst/journal` appears in the product repo | Normal: pins | Keep it; share with `journal pin --share` |
 | `share push`: `nothing to push` with uncommitted changes | A bug fixed in 0.119.2 | Upgrade |
-| The criterion's `development/journal/` is untracked after init | First commit made before the install entry | Commit it, or `share create` will |
+| The criterion's `development/journal/` is untracked after init | First commit made before the install entry (fixed in 0.120.0, BUG-000056) | Commit it, or `share create` will; upgrade |
+| Old runtimes fill `$CATALYST_HOME/runtimes/` | One runtime per CLI build | `catalyst runtime prune`, then `--yes` (0.120.0) |
 
 Triage for a writing verb that fails on identity:
 

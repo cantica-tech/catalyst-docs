@@ -9,12 +9,13 @@ with it (`cantica-tech/catalyst-docs`). The knowledge-base **module** (KBM, `can
 defines the records (`KB-`, `KSOURCE-`, `KBUILD-`), the slash commands (`/kb-setup`, `/kb-build`, …) and the
 `kbm-build/1` format. The module has its own chapter. This one cites the module only where the engine depends on it.
 
-State described: 2026-10-31. Engine **0.16.0** (latest tag), KBM **0.6.1**, kernel **0.119.2** (engine
-deployment), catalyst-docs deployment at kernel **0.114.0**,
-catalyst-docs' CI pinned to engine **0.12.0**. Section 10 lists every version skew.
+State described: 2026-10-31, refreshed 2026-11-01. Engine **0.16.1** (latest tag), KBM **0.6.1**, kernel
+**0.121.0** (both deployments, engine and catalyst-docs), catalyst-docs' Pages workflow pinned to engine **0.16.1**,
+with a Standards (lint) workflow beside it. Section 10 lists every version skew.
 
 Sources are cited as `cantica-tech/<repo>:<path>`. Commands were taken from the parsers and scripts themselves. The
-`--help` output was enumerated from engine 0.16.0, and Section 9.1 lists what was run in a sandbox.
+`--help` output was enumerated from engine 0.16.0 (0.16.1 changes no command), and Section 9.1 lists what was run
+in a sandbox.
 
 ---
 
@@ -61,8 +62,8 @@ flowchart LR
 ```
 
 Neither the engine nor catalyst-users is on PyPI (both return 404). Install either one **from its git tag**, for
-example `git+https://github.com/cantica-tech/catalyst-kb-engine@0.16.0`. The engine's tags are bare (`0.16.0`). Its
-GitHub releases are titled `v0.16.0`.
+example `git+https://github.com/cantica-tech/catalyst-kb-engine@0.16.1`. The engine's tags are bare (`0.16.1`). Its
+GitHub releases are titled `v0.16.1`.
 
 ---
 
@@ -217,10 +218,13 @@ flowchart TD
 
 Tests are in `tests/` (offline unit tests, plus `tests/integration/test_record_catalyst.py`). CI is
 `cantica-tech/catalyst-kb-engine:.github/workflows/ci.yml`. It runs on pushes to `development` and on PRs, with a
-Python 3.11 and 3.13 matrix and `uv==0.11.26`. The steps are `uv sync --locked`, `ruff check`, `ruff format --check`,
-`uvx pyright`, `pytest -q`. The local `.python-version` is `3.11`.
+Python 3.11 and 3.13 matrix and `uv==0.11.26`, actions pinned by SHA. The steps are `uv sync --locked`,
+`ruff check --no-cache`, `ruff format --check --no-cache` (ruff pinned at **0.16.10** in the dev group since 0.16.1,
+the cantica-tech standards' version), `uvx pyright`, `pytest -q`. The local `.python-version` is `3.11`. Since 0.16.1
+the tests run on `httpx2`. The integration test sets up on kernel ≥ 0.120.0 with `CATALYST_ALLOW_STATIC_IDENTITY=1`
+and a kernel release directory (`CATALYST_RELEASE`) or a checkout.
 
-### 3.2 Dependencies and extras (`pyproject.toml`, version 0.16.0, `requires-python >=3.11`, build backend `uv_build`)
+### 3.2 Dependencies and extras (`pyproject.toml`, version 0.16.1, `requires-python >=3.11`, build backend `uv_build`)
 
 | Install | Pulls | Needed for |
 | --- | --- | --- |
@@ -229,7 +233,7 @@ Python 3.11 and 3.13 matrix and `uv==0.11.26`. The steps are `uv sync --locked`,
 | `[openai]` | `pydantic-ai-slim[openai]` | `ollama:`, `openai:` **and `github-copilot:`** model strings. All three use the OpenAI client, so `build-vectors` with Ollama needs this extra too |
 | `[search]` | `numpy>=1.26`, `pyarrow>=17` | `search`, `evaluate` |
 | `[mcp]` | `mcp>=2.3`, numpy, pyarrow | `mcp`. It imports `mcp.server.mcpserver.MCPServer`, the mcp 2.x name for the former `FastMCP` |
-| `[serve]` | `catalyst-users[fastapi] @ git+https://github.com/cantica-tech/catalyst-users@0.7.0`, numpy, pyarrow, `uvicorn>=0.30` | `serve` |
+| `[serve]` | `catalyst-users[fastapi] @ git+https://github.com/cantica-tech/catalyst-users@0.10.0` (since 0.16.1; 0.7.0 before; 0.11.0 pending), numpy, pyarrow, `uvicorn>=0.30` | `serve` |
 
 `sentence-transformers:` models appear in the help text as an example, but no extra installs `sentence-transformers`.
 Install it yourself if you want to use one (not verified).
@@ -563,7 +567,10 @@ build and is never exposed beyond it.
   passages:[…]}`.
 - Auth: `Authorization: Bearer <token>`. The token must pass active introspection at the realm's issuer
   (`<server>/realms/<realm>`) with audience `catalyst-api`. Refused tokens get 401, and a provider out of reach gets
-  503. There are no `/docs`, `/redoc` or `/openapi.json` routes.
+  503. There are no `/docs`, `/redoc` or `/openapi.json` routes. Since 0.16.1 (the engine's BUG-000047), with the
+  provider on loopback, `localhost` and `127.0.0.1` are one host: a token got at either name of the same port and realm
+  is introspected at the name it was got from (Keycloak refuses a token at the other name). The provider still
+  decides; the token's claim only picks which of the two names to ask.
 - Settings come from catalyst-users (Section 3.3). It listens on localhost unless `--host` says otherwise.
 
 A realm search over HTTP:
@@ -681,7 +688,7 @@ sequenceDiagram
 
 | Path | What |
 | --- | --- |
-| `catalyst.toml` | `project_name = "catalyst-docs"`, `module = "knowledge-base"`, `kernel_version = "0.114.0"`, `catalyst_repo_url` (its private `<project>-criterion` repository), `criterion_branch = "criterion"` |
+| `catalyst.toml` | `project_name = "catalyst-docs"`, `module = "knowledge-base"`, `kernel_version = "0.121.0"`, `catalyst_repo_url` (its private `<project>-criterion` repository), `criterion_branch = "criterion"` |
 | `KB.md` | the knowledge base card: classification Public, default Internal, hosted embedding Local only (`nomic-embed-text`), basis Documents, document base Dynamic, target Vector database (realm), Folders and Vector database (public), curator `<owner>`, the rule it serves, plus the source table |
 | `GUIDE-OUTLINE.md` | the guide's approved outline (owner, 2026-10-26): audience, voice, twelve pages, what each rests on |
 | `docs/guide/01…12-*.md` | the twelve guide pages (what catalyst is, getting started, the ten laws, rules/domains/criterion, day-to-day, people/roles/signing, working together, keeping up to date, modules, knowledge bases, analysing existing code, the Studio and the editor), each approved by the owner |
@@ -690,6 +697,8 @@ sequenceDiagram
 | `site/sources.json` | the public sources list (`kbm-sources/1`) for the seven public sources: `catalyst`, `catalyst-software-engineering`, `catalyst-knowledge-base`, `catalyst-kb-engine`, `catalyst-users`, `catalyst-ui`, `standards` |
 | `mkdocs.yml` | MkDocs Material: `docs_dir: _pages`, `site_dir: _site`, `site_url: https://cantica-tech.github.io/catalyst-docs/`, nav (Home, Guide 01–12, Reference), plugins `search`, link validation set to `info` |
 | `.github/workflows/pages.yml` | the build and deploy pipeline (Section 5.3) |
+| `.github/workflows/standards.yml` | since 2026-10-31: the cantica-tech standards' shared lint workflow (v0.1.2) — Markdown, YAML and workflows — on pull requests and pushes to `development` and `main`; locally `task --taskfile ../standards/Taskfile.standards.yml --dir . standards:lint` |
+| `docs/guide/manual/` | this technical manual (classification Public), in the site's navigation |
 | `.gitignore` | `_pages/`, `_site/`, `_build/` (generated, never committed) |
 
 ### 5.2 The knowledge base's sources and builds
@@ -706,24 +715,26 @@ sequenceDiagram
 
 Triggers: push to `main`, a daily cron `17 5 * * *` (UTC), and `workflow_dispatch`. Permissions: `contents: read`,
 `pages: write`, `id-token: write`. Concurrency group `pages`, not cancelled in progress.
-`ENGINE="catalyst-kb-engine[vectors,openai] @ git+https://github.com/cantica-tech/catalyst-kb-engine@0.12.0"`.
+`ENGINE="catalyst-kb-engine[vectors,openai] @ git+https://github.com/cantica-tech/catalyst-kb-engine@0.16.1"` (since
+2026-10-31; it was 0.12.0, and the site built with 0.16.1 was checked identical), with `UV_VERSION=0.13.6`,
+`MKDOCS_VERSION=1.6.1` and `MKDOCS_MATERIAL_VERSION=9.8.0` pinned, and every action pinned by SHA.
 
 **Job `build` (ubuntu-latest):**
 
 | # | Step | Command (summary) | Produces |
 | --- | --- | --- | --- |
-| 1 | checkout | `actions/checkout@v4` | the repo at `$GITHUB_SHA` |
-| 2 | Python | `actions/setup-python@v5`, 3.12 | — |
-| 3 | Install | `pip install uv`, `uv tool install "$ENGINE"`, `uv tool install mkdocs --with mkdocs-material` | `catalyst-kb-engine`, `mkdocs` on PATH |
+| 1 | checkout | `actions/checkout` (v4, by SHA), no persisted credentials | the repo at `$GITHUB_SHA` |
+| 2 | Python | `actions/setup-python` (v5, by SHA), 3.12 | — |
+| 3 | Install | `pip install "uv==$UV_VERSION"`, `uv tool install "$ENGINE"`, `uv tool install "mkdocs==$MKDOCS_VERSION" --with "mkdocs-material==$MKDOCS_MATERIAL_VERSION"` | `catalyst-kb-engine`, `mkdocs` on PATH |
 | 4 | Clone public sources | Python loop over `site/sources.json`: `git clone --depth 1 <location>.git _build/src/<name>` | shallow clones of GitHub's default branches, so unpushed work never reaches the site |
 | 5 | Read and build folders | `GH_TOKEN=${{ github.token }}`. `read-sources "$KB" _build/staging --sources site/sources.json --projects-dir _build/src --public-only`. `cp -R docs/guide _build/staging/docs/guide`. `build-folders _build/staging _build/public --kb "$KB" --version "${GITHUB_SHA::12}" --floor Public --ceiling Public --content-commit "$GITHUB_SHA"` | `_build/public` (folders build) |
 | 6 | Publication check | `publish-check _build/public --sources site/sources.json` | fails the job on any non-public content |
 | 7 | Ollama | <code>curl -fsSL https://ollama.com/install.sh \&#124; sh</code>. Start `ollama serve` if `/api/version` does not answer. `ollama pull nomic-embed-text` | the local embedding model in the runner |
 | 8 | Vector DB | `OLLAMA_BASE_URL=http://localhost:11434/v1`. Download the live `vectors/catalyst-vectors.tar.gz` into `_build/previous`. If that works, add `--previous _build/previous/catalyst-vectors`. Then `build-vectors _build/staging _build/vectors/catalyst-vectors … --floor Public --ceiling Public --hosted-up-to "Local only" --local-model ollama:nomic-embed-text --document-prefix "search_document: " --query-prefix "search_query: " --content-commit "$GITHUB_SHA"`, then `publish-check` on it | `_build/vectors/catalyst-vectors` |
 | 9 | Make the site | `site _build/public _pages --title "catalyst" --intro "…"`. Copy `manifest.json` to `_pages/`. `tar -czf _pages/vectors/catalyst-vectors.tar.gz -C _build/vectors catalyst-vectors`. Copy the vectors manifest. `mkdocs build` | `_site/` |
-| 10 | Pages | `actions/configure-pages@v5`, `actions/upload-pages-artifact@v3` (path `_site`) | the Pages artifact |
+| 10 | Pages | `actions/configure-pages` (v5), `actions/upload-pages-artifact` (v3, path `_site`), by SHA | the Pages artifact |
 
-**Job `deploy`:** `needs: build`, environment `github-pages`, `actions/deploy-pages@v4`.
+**Job `deploy`:** `needs: build`, environment `github-pages`, `actions/deploy-pages` (v4, by SHA).
 
 The workflow as a sequence:
 
@@ -870,7 +881,7 @@ curl -fsS http://localhost:11434/api/tags | python3 -c 'import json,sys;print([m
 As a tool, at a tag, with every extra:
 
 ```sh
-uv tool install "catalyst-kb-engine[vectors,openai,search,mcp,serve] @ git+https://github.com/cantica-tech/catalyst-kb-engine@0.16.0"
+uv tool install "catalyst-kb-engine[vectors,openai,search,mcp,serve] @ git+https://github.com/cantica-tech/catalyst-kb-engine@0.16.1"
 catalyst-kb-engine --help
 ```
 
@@ -1038,7 +1049,9 @@ Gotchas (from `docs/catalyst-docs-progress.md`):
 - Give `CATALYST_USERS_SERVER` to `serve` only. Set in the shell that runs `catalyst-users token --system`, it
   overrides `IAM/settings.json` and drops the system account's password command.
 - Use the same host string (`localhost` or `127.0.0.1`) for the token and the service, because Keycloak builds the
-  issuer from it.
+  issuer from it. Since engine 0.16.1 a loopback provider accepts a token got at either loopback name.
+- Since catalyst-users 0.11.0 an override naming settings.json's own provider keeps the system account; the engine
+  still pins 0.10.0, so the first gotcha holds until it moves to 0.11.0.
 
 ### 7.9 Wire the MCP search into an agent
 
@@ -1187,7 +1200,7 @@ through a client, the Copilot embedding path.
 | `catalyst-kb-engine: <catalyst message>` (CatalystError) on `--record` / `record-site` | the criterion is not opened, `catalyst` is not on PATH, or the signer is not verified (Keycloak down) | `catalyst open`, set `CATALYST_CLI`, start the identity provider |
 | `record-site`: `… is not there: … serves no build` | wrong URL, or Pages not deployed | check `curl <site>/manifest.json` |
 | `serve` returns 503 | the identity provider is unreachable | start Keycloak and check `CATALYST_USERS_SERVER` |
-| `serve` returns 401 with a valid-looking token | issuer host mismatch (`localhost` vs `127.0.0.1`) or wrong audience | use one host string everywhere. The audience must be `catalyst-api` |
+| `serve` returns 401 with a valid-looking token | issuer host mismatch (another host name; `localhost` vs `127.0.0.1` before 0.16.1) or wrong audience | use one host string everywhere, or engine ≥ 0.16.1 on loopback. The audience must be `catalyst-api` |
 | `serve` `/search` returned 500 before 0.14.1 | `OLLAMA_BASE_URL` unset for queries | upgrade to 0.14.1 or later, or set the variable |
 | `onboard --model ollama:…` proposes rule-based plans anyway | the model failed (for example pydantic-ai's Ollama provider needs `OLLAMA_BASE_URL`, which the engine does not default for onboarding). It silently falls back with a warning | export `OLLAMA_BASE_URL=http://localhost:11434/v1` |
 | `site`: `docs/… is neither the knowledge base's own page nor a repository's` | a document outside `docs/guide/` or `docs/repositories/` | a site is built only from a public repositories read plus the guide |
@@ -1196,26 +1209,27 @@ through a client, the Copilot embedding path.
 
 ## 10. Oddities, version skew, open items
 
-**Version skew (2026-10-31):**
+**Version skew (2026-11-01):**
 
 | Where | Engine | Kernel | KBM |
 | --- | --- | --- | --- |
-| `cantica-tech/catalyst-kb-engine` (latest tag) | 0.16.0 | 0.119.2 (its deployment) | — |
-| catalyst-docs `pages.yml` | **0.12.0** | 0.114.0 (`catalyst.toml`) | 0.6.x |
-| catalyst-users pinned by engine `[serve]` | — | — | — (catalyst-users 0.7.0) |
+| `cantica-tech/catalyst-kb-engine` (latest tag) | 0.16.1 | 0.121.0 (its deployment) | — |
+| catalyst-docs `pages.yml` | 0.16.1 | 0.121.0 (`catalyst.toml`) | 0.6.1 |
+| catalyst-users pinned by engine `[serve]` | — | — | — (catalyst-users 0.10.0; the CLI is 0.11.0) |
 
-Pages builds therefore skip 0.13–0.16 changes, such as the per-document default and the Ollama URL default. Those
-changes do not affect the build steps, because the workflow sets `OLLAMA_BASE_URL` itself.
+The 2026-10-31 skew (Pages on engine 0.12.0, catalyst-docs at kernel 0.114.0, `[serve]` on catalyst-users 0.7.0) is
+closed. What remains: the engine and catalyst-mcp move to catalyst-users 0.11.0.
 
 **Oddities and gotchas:**
 
 - **Public build version:** it is the **catalyst-docs** commit (`${GITHUB_SHA::12}`), not the sources' commits.
   `content_commit` is also the catalyst-docs commit. A daily cron rebuild of the same commit has the same version
   (Section 5.4).
-- **Action pins:** `pages.yml` pins actions by tag (`@v4`, `@v5`, `@v3`). The engine's CI pins them by SHA.
+- ~~**Action pins:** `pages.yml` pins actions by tag.~~ Since 2026-10-31 every action is pinned by SHA, as in the
+  engine's CI, and uv, MkDocs and Material are pinned too.
 - **Ollama in CI:** `pages.yml` installs Ollama in CI with `curl … | sh` on every run.
-- **Stale placeholders:** `KB.md`'s "Contents" block and `docs/README.md` still say "none yet" for `docs/`, but twelve
-  guide pages exist.
+- ~~**Stale placeholders:** `KB.md`'s "Contents" block and `docs/README.md` said "none yet" for `docs/`.~~ Since
+  2026-10-31 they list the guide and its manual (`pointers/` is still "none yet", truthfully).
 - **Superseded open item:** the progress log's "Open for the owner: the public build is not recorded as a `KBUILD-`"
   is resolved by `record-site` (README), but the log still lists it.
 - **Tarball name:** `record-site` hard-codes the vectors tarball name `catalyst-vectors.tar.gz`.
@@ -1237,8 +1251,9 @@ changes do not affect the build steps, because the workflow sets `OLLAMA_BASE_UR
 - Folder, Site and pointer sources are modelled (`SourceKind`) but `read-sources` reads only Repository and
   Criterion. Others are skipped with "not supported yet". Code, PDFs and non-markdown files are not read (HOWTO "Good
   to know").
-- catalyst-docs' CI trails the engine (0.12.0) and its deployment trails the kernel (0.114.0). A
-  `/sync-framework`-style upgrade and an engine pin bump are due (inferred, not stated in a roadmap).
+- ~~catalyst-docs' CI trails the engine (0.12.0) and its deployment trails the kernel (0.114.0).~~ Done on
+  2026-10-31/11-01: the Pages workflow builds with engine 0.16.1 and the deployment is at kernel 0.121.0.
+- The engine's `[serve]` and its tests to catalyst-users 0.11.0 (pending).
 
 **Unverified in this chapter:** the timings quoted from the progress log, the Ollama model size, the
 `claude mcp add` wiring and every command that writes to a criterion. These were read from code, not executed.
