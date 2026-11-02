@@ -3,8 +3,8 @@ title: "40 — Process modules: software-engineering (SE) and knowledge-base (KB
 classification: Public
 ---
 
-> Chapter of the catalyst fleet hand-off documentation. State as read on 2026-10-31:
-> kernel 0.119.2 (`cantica-tech/catalyst`), software-engineering module 3.4.1
+> Chapter of the catalyst fleet hand-off documentation. State as read on 2026-10-31, refreshed on 2026-11-01:
+> kernel 0.121.0 (`cantica-tech/catalyst`), software-engineering module 3.6.0
 > (`cantica-tech/catalyst-software-engineering`), knowledge-base module 0.6.1
 > (`cantica-tech/catalyst-knowledge-base`), distribution repository `cantica-tech/cantica-tech`.
 > Sources are cited as `cantica-tech/<repo>:<path>`. Everything here was read from the public repositories; the few things that could not be verified are listed in §11.
@@ -81,10 +81,10 @@ Hard boundaries, enforced by the kernel and CI:
 
 Two production modules exist, listed in `cantica-tech/catalyst:framework/modules/catalog.md`:
 
-| Id | Repository | Default branch | Version (2026-10-31) | Kernel range |
+| Id | Repository | Default branch | Version (2026-11-01) | Kernel range |
 |---|---|---|---|---|
-| `software-engineering` | `cantica-tech/catalyst-software-engineering` | `main` | 3.4.1 | `>=0.83.0` |
-| `knowledge-base` | `cantica-tech/catalyst-knowledge-base` | `main` | 0.6.1 | `>=0.107.0` |
+| `software-engineering` | `cantica-tech/catalyst-software-engineering` | `main` | 3.6.0 | `>=0.83.0` |
+| `knowledge-base` | `cantica-tech/catalyst-knowledge-base` | `development` (since 2026-11-01) | 0.6.1 | `>=0.107.0` |
 
 `cantica-tech/catalyst:framework/modules/sample-process/` is an in-repo sample (format 3, grounding type `policy`,
 types `POLICY` and `TASK`, namespace `SP`) used by CI to prove the kernel knows no module; it is not catalogued and is
@@ -139,10 +139,11 @@ catalyst-<module-id>/
 ├── code-of-conduct.module.md    §3 doc types + §4 commands -> inserted into the deployed CODE-OF-CONDUCT.md
 ├── INVARIANTS.module.md         module laws (≤3) + invariants, read with the kernel's INVARIANTS.md
 ├── migrations/<kernel-version>/<name>.md + migrations/migrations.md
-├── Taskfile.module.yml          LEGACY: not read since kernel 0.70.0 (§6.5)
+├── (Taskfile.module.yml)        LEGACY: not read since kernel 0.70.0 (§6.5); SE removed it in 3.5.0
 ├── ui/                          optional React components for catalyst-ui (not used by the CLI)
 ├── skills/<name>/SKILL.md       optional agent skills (neither module ships any)
-└── catalyst/modules/<id>/v<ver>/  packaged release output (see §7); never shipped in a release
+└── (catalyst/)                   no longer in a module repository: since kernel 0.121.0 releases live only in
+                                 the distribution repository (§7); KBM git-ignores catalyst/
 ```
 
 What a release ships is defined once, in `cantica-tech/catalyst:scripts/catalyst/modules.py` `shipped_files()`, and
@@ -356,9 +357,10 @@ flowchart TD
 ### 2.9 Code in modules (there is none) and UI descriptors
 
 **Neither module ships executable Python.** The kernel's design states "a module carries no code today"
-(`cantica-tech/catalyst-knowledge-base:docs/engine-and-onboarding.md` §2). The `catalyst/` folders in both module
-repositories hold **packaged release zips and manifests** produced by `cantica-tech/catalyst:scripts/package_release.py`
-(§7), not code. All behaviour is the kernel CLI's generic verbs (`new`, `status set`, `link`, `backlog`, `list`, `view`,
+(`cantica-tech/catalyst-knowledge-base:docs/engine-and-onboarding.md` §2). The `catalyst/` folders the module
+repositories used to hold were **packaged release zips and manifests** produced by
+`cantica-tech/catalyst:scripts/package_release.py` (§7), not code; since 2026-11-01 (SE 3.5.0, KBM on `development`,
+kernel 0.121.0) they are gone and the releases live only in `cantica-tech/cantica-tech`. All behaviour is the kernel CLI's generic verbs (`new`, `status set`, `link`, `backlog`, `list`, `view`,
 `inbox`, `index regen`, `journal append`) driven by the module's declarations and by the agent following the module's
 §4 procedures. KBM's code lives in a separate package, `cantica-tech/catalyst-kb-engine` (§4.12).
 
@@ -385,7 +387,7 @@ and the KBM repository itself).
 | Path | Role |
 |---|---|
 | `module.yaml` (≈26 KB) | format 3: tiers, namespace `SE`, aliases, the 8 types, 9 commands, templates, definitions, required paths, contributions |
-| `version.txt` | `3.4.1` |
+| `version.txt` | `3.6.0` |
 | `code-of-conduct.module.md` | §3 type table, §4 commands and their procedures |
 | `rules-of-rules.module.md` | the tier table and `rr-SE-001`..`rr-SE-005` |
 | `INVARIANTS.module.md` | law SE-L1 and the invariants |
@@ -393,10 +395,9 @@ and the KBM repository itself).
 | `definitions/backlog/DEFINITION-BACKLOG-v1.md`, `-v2.md` | the backlog's definition (the 8 types' definitions are generated) |
 | `migrations/` | 11 migrations, kernel 0.4.0 → 0.87.0 |
 | `ui/` | `@catalyst-modules/software-engineering-ui` |
-| `Taskfile.module.yml` | legacy (not read) |
 | `ROADMAP.md` | the historical modularization roadmap (moved from catalyst) |
 | `.github/workflows/standards.yml` | calls `cantica-tech/standards/.github/workflows/lint.yml@v0.1.2` on PRs and pushes to `development` |
-| `catalyst/modules/software-engineering/v*/` | packaged releases (committed on `main` only) |
+| (`catalyst/modules/software-engineering/v*/`) | removed in 3.5.0 (34 committed zips); every version is in `cantica-tech/cantica-tech:catalyst/modules/software-engineering/` |
 
 ### 3.3 Tiers and the law SE-L1
 
@@ -621,9 +622,11 @@ Rows of a named roadmap file `development/roadmaps/<name>.md`, registered in `de
 | Due | Signed-off-by | Notes`. `Linked` is a list of `FEAT-`/`REQ-`. `Start`/`Due` optional dates (module 3.4.0),
 taken from the source, never invented. File header: `Name`, `Source`, `Added`, `Last updated`, optional `Retired`.
 
-`Status` is **derived** by `/show-backlog` from `Linked`: nothing → `Not triaged`; only a `FEAT-` → `Triaged`; ≥1
-linked `REQ-` not closed → `In progress`; every linked `REQ-` `Completed`/`Abandoned` → `Done`. Never hand-edited;
-`Notes` is free.
+`Status` is **derived** by `/show-backlog` from `Linked`, the first rule that holds (module **3.6.0**): nothing →
+`Not triaged`; every linked item, `FEAT-` and `REQ-` alike, closed (`Completed` or `Abandoned`; all `Abandoned`
+counts) → `Done`; at least one `REQ-` linked (and something still open) → `In progress`; only `FEAT-`s linked, one
+still open → `Triaged`. Up to 3.5.0 only linked `REQ-`s could make a row `Done`, so a row linking only features never
+closed. Never hand-edited; `Notes` is free.
 
 A roadmap row's Status is computed by `/show-backlog` from its `Linked` column, never set by hand:
 
@@ -632,10 +635,12 @@ stateDiagram-v2
   state "Not triaged" as NotTriaged
   state "In progress" as InProgress
   [*] --> NotTriaged
-  NotTriaged --> Triaged : only a FEAT is linked
-  Triaged --> InProgress : a linked REQ is not closed
-  NotTriaged --> InProgress : a linked REQ is not closed
-  InProgress --> Done : every linked REQ Completed or Abandoned
+  NotTriaged --> Triaged : only FEATs linked, one open
+  Triaged --> InProgress : a REQ is linked, something open
+  NotTriaged --> InProgress : a REQ is linked, something open
+  InProgress --> Done : every linked FEAT and REQ closed
+  Triaged --> Done : every linked FEAT closed (3.6.0)
+  NotTriaged --> Done : every linked item closed
   Done --> [*]
 ```
 
@@ -701,12 +706,13 @@ Every command that creates or changes an artifact allocates IDs through `catalys
 with the kernel's common steps: `catalyst index regen`, `catalyst journal append`, and `catalyst check` where no
 end-of-turn hook runs it. The agent receives each command as a prompt of the user-level `catalyst mcp` server
 (`/catalyst:<name>` in Claude Code) or via `catalyst spec <command> [<part>]`; a human can run any of them headless with
-`catalyst task <name> -- <args>` (which runs `claude -p "/<name> <args>"` by default).
+`catalyst task <name> -- <args>` (which runs `claude -p "/catalyst:<name> <args>"` by default since kernel 0.120.0).
 
 **Taskfile.** The deployed `Taskfile.common.yml` has one task per §4 bullet **head**. For SE that is `create` (all
 `/create <type>` parts share the kernel's `create` task), `roadmap` and `show-backlog`. There is no `create-req` task:
 run `catalyst task create -- req "<title>"`. (The module's own `Taskfile.module.yml`, declaring only `roadmap` and
-`show-backlog`, is no longer read.)
+`show-backlog`, was not read since kernel 0.70.0 and was removed in SE 3.5.0; the kernel's module-manifest schema marks
+`contributions.taskfile` deprecated and ignored.)
 
 | Command (aliases) | `module.yaml` argument hint | Mechanical call | Starts | Judgment the agent owns |
 |---|---|---|---|---|
@@ -965,7 +971,7 @@ or **beside any other module** (a knowledge base built off that project), in eit
 
 ### 4.2 Repository contents
 
-`cantica-tech/catalyst-knowledge-base` (single branch `main`; tags `X.Y.Z` on `main`; itself governed by catalyst
+`cantica-tech/catalyst-knowledge-base` (branches `development`, the default since 2026-11-01, and `main`; tags `X.Y.Z` on `main`; itself governed by catalyst
 with the **software-engineering** module — its `catalyst.toml` names `module = "software-engineering"`, shared
 criterion kept in the project's private criterion repository (`<project>-criterion` convention), branch `criterion`; that file is never shipped):
 
@@ -980,7 +986,8 @@ criterion kept in the project's private criterion repository (`<project>-criteri
 | `docs/best-practices.md` | current practice for AI knowledge bases mapped to the module; §13 "a KB built from a catalyst criterion" |
 | `docs/engine-and-onboarding.md` | engine design and technology research (Pydantic AI chosen) |
 | `migrations/0.107.0/*.md` | 3 migrations |
-| `catalyst/modules/{cantica-knowledge-base,knowledge-base}/v*/` | packaged releases (the module was first released as `cantica-knowledge-base` 0.1.0, renamed in 0.2.0) |
+| `.github/workflows/` | `standards.yml` (the shared lint) and `install.yml` (installs the module against the latest kernel), since 2026-10-31 |
+| (`catalyst/`) | git-ignored since 2026-11-01: the packaged releases it held (the module was first released as `cantica-knowledge-base` 0.1.0, renamed in 0.2.0) were removed; releases live in `cantica-tech/cantica-tech` |
 
 ### 4.3 Tiers and the laws KB-L1, KB-L2
 
@@ -1544,11 +1551,12 @@ flowchart LR
 | Repo | Branches | Release |
 |---|---|---|
 | `cantica-tech/catalyst-software-engineering` | `development` (work), `main` | PR `development → main` (CI: `Standards` lint workflow); merge commit; `gh release create X.Y.Z --target main --title vX.Y.Z` — **no `release` branch** (unlike catalyst) |
-| `cantica-tech/catalyst-knowledge-base` | `main` only | commits land on `main`; annotated tags `X.Y.Z` on `main` (e.g. `0.6.1` on "chore: a vector build's embedding input…; 0.6.1"); no CI workflow in the repo |
+| `cantica-tech/catalyst-knowledge-base` | `development` (default, work), `main` | since 2026-11-01 the same model as SE: PR `development → main`, annotated tags `X.Y.Z` on `main` (e.g. `0.6.1`); CI: `standards.yml` and `install.yml` (installs the module against the latest kernel). Before, commits landed on `main` and there was no CI |
 
 Before tagging: bump `version.txt` **and** `module.yaml` `version`; update `kernel_version` if the module needs a newer
 kernel; add a migration under `migrations/<kernel-version>/` and its index row if entity shapes change; keep §4 bullet
-heads and `module.yaml` `commands` in parity. The module's release notes state the required kernel version. When a
+heads and `module.yaml` `commands` in parity. The module's release notes state the required kernel version. Commit
+no release zip: the kernel's packager publishes to the distribution repository only (§7.2). When a
 kernel and modules ship together, release **modules first, then the kernel** (the kernel's notes name module
 versions).
 
@@ -1562,7 +1570,7 @@ gitGraph
   commit id: "change"
   commit id: "bump version.txt and module.yaml"
   checkout main
-  merge development id: "PR development to main" tag: "3.4.1"
+  merge development id: "PR development to main" tag: "3.6.0"
 ```
 
 ### 7.2 Packaging and distribution
@@ -1570,49 +1578,54 @@ gitGraph
 From a catalyst checkout with the modules checked out as siblings:
 
 ```sh
-task release:publish PUBLISH_DIR=../cantica-tech
-# = python3 scripts/package_release.py --publish-dir ../cantica-tech --push
+task release:publish PUBLISH_DIR=../cantica-tech -- --module software-engineering --no-kernel
+# = python3 scripts/package_release.py --publish-dir ../cantica-tech --push --module software-engineering --no-kernel
 ```
 
 `cantica-tech/catalyst:scripts/package_release.py`:
 
-1. For **every** module in `framework/modules/catalog.md` checked out at `../catalyst-<id>/`: read id/name/description
-   from `module.yaml`, version from `version.txt`; write `manifest.json` (`kernelVersion` = module's
-   `kernel_version`, or `>=<packaging kernel>` with a warning if absent; `frameworkVersion` duplicate; `entry:
-   ui/index.js`) and `<id>-v<ver>.zip` (manifest + `shipped_files()`, fixed 1980 timestamps) into
-   `<module repo>/catalyst/modules/<id>/v<ver>/`.
-2. With `--push`: commit that folder onto the module repo's `origin/main` through a temporary detached worktree
-   ("Release <id> module v<ver>") and push — the development checkout is never touched.
-3. Package the kernel (`framework/kernel/` + `bin/catalyst.pyz`) into `catalyst/kernel/v<ver>/`.
-4. With `--publish-dir`: copy every release into `<dir>/catalyst/{kernel,modules}/…`, regenerate the READMEs
-   (`catalyst/README.md`, `catalyst/modules/README.md` table: module, latest version, required kernel), and with
-   `--push` commit "Deploy release: kernel vX, software-engineering module vY, knowledge-base module vZ" and push
-   `cantica-tech/cantica-tech` `main`.
+Since kernel **0.121.0** (REQ-000112, fw-STRUCTURE-000016) nothing is written into a module repository:
 
-Refusal: `--publish-dir` refuses a kernel that is not at its release tag (`--unreleased` overrides). There is **no
-such check for modules** (§9.7). Distribution layout today:
+1. For each module in `framework/modules/catalog.md` checked out at `../catalyst-<id>/` (only those named by
+   `--module <id>`, when given): read id/name/description from `module.yaml`, version from `version.txt`; write
+   `manifest.json` (`kernelVersion` = module's `kernel_version`, or `>=<packaging kernel>` with a warning if absent;
+   `frameworkVersion` duplicate; `entry` — `module.yaml`'s `entry`, else `ui/index.js` — **only when the release ships
+   the built UI bundle**) and `<id>-v<ver>.zip` (manifest + `shipped_files()`, fixed 1980 timestamps) into this catalyst
+   checkout's git-ignored `catalyst/modules/<id>/v<ver>/`.
+2. Package the kernel (`framework/kernel/` + `bin/catalyst.pyz`) into `catalyst/kernel/v<ver>/`, unless `--no-kernel`.
+3. With `--publish-dir`: copy every release into `<dir>/catalyst/{kernel,modules}/…`, regenerate the READMEs
+   (`catalyst/README.md`, `catalyst/modules/README.md` table: module, latest version, required kernel), and with
+   `--push` commit "Deploy release: …" and push `cantica-tech/cantica-tech` `main` — that directory alone.
+
+Up to 0.120.0 the zip and manifest were written into `<module repo>/catalyst/modules/<id>/v<ver>/` and, with `--push`,
+committed onto the module's `origin/main` through a temporary worktree; SE 3.5.0 removed its 34 committed zips and KBM
+removed its own (and the old `cantica-knowledge-base` 0.1.0), git history keeping them.
+
+Refusal: `--publish-dir` refuses a kernel **or a module** checkout that is not at its version's tag (`--unreleased`
+overrides); before 0.121.0 there was no such check for modules (§9.7). Distribution layout today:
 
 What one `task release:publish` run does:
 
 ```mermaid
 flowchart TD
   T["task release:publish PUBLISH_DIR=../cantica-tech"] --> P["scripts/package_release.py --publish-dir --push"]
-  P --> M["each catalogued module at ../catalyst-id<br/>(working tree, not the tag)"]
-  M --> MZ["manifest.json and id-vver.zip into<br/>the module repo's catalyst/modules/id/vver/"]
-  MZ --> MP["commit onto origin/main through a<br/>temporary detached worktree, push"]
-  P --> K{"kernel at its release tag?"}
+  P --> M["each catalogued module at ../catalyst-id<br/>(or those named by --module)"]
+  M --> MT{"module at its version's tag?"}
+  MT -- no --> R
+  MT -- yes --> MZ["manifest.json (entry only with a UI bundle) and id-vver.zip<br/>into this checkout's ignored catalyst/modules/id/vver/"]
+  P --> K{"kernel at its release tag?<br/>(skipped with --no-kernel)"}
   K -- no --> R["refused unless --unreleased"]
   K -- yes --> KP["package the kernel into catalyst/kernel/vver/"]
-  MP --> D["copy every release into cantica-tech/cantica-tech catalyst/"]
+  MZ --> D["copy every release into cantica-tech/cantica-tech catalyst/"]
   KP --> D
   D --> RD["regenerate the READMEs, commit Deploy release, push main"]
-  RD --> CON["consumers: module install, sync apply --module,<br/>catalyst-ui's VS Code extension"]
+  RD --> CON["consumers: module install, sync apply --module,<br/>catalyst-ui's VS Code extension<br/>(nothing written into a module repository)"]
 ```
 
 ```text
 cantica-tech/cantica-tech:catalyst/modules/
   README.md
-  software-engineering/v1.0.0 … v3.4.1/{manifest.json, software-engineering-v<ver>.zip}
+  software-engineering/v1.0.0 … v3.6.0/{manifest.json, software-engineering-v<ver>.zip}
   knowledge-base/v0.2.0 … v0.6.1/{manifest.json, knowledge-base-v<ver>.zip}   (v0.4.x not published)
 ```
 
@@ -1622,29 +1635,29 @@ Consumers: `catalyst module install <zip>`; `catalyst sync apply --module <zip>`
 ## 8. Fleet repositories by module
 
 The module each public fleet repository names in its `catalyst.toml` (its first module; a deployment's full module list
-and installed versions are kept in its criterion's `modules/modules.json`), as read on 2026-10-31:
+and installed versions are kept in its criterion's `modules/modules.json`), as read on 2026-11-01. Every SE
+deployment runs SE 3.6.0:
 
 | Repository | `module` | `kernel_version` |
 |---|---|---|
-| `cantica-tech/catalyst` | software-engineering | 0.119.2 |
-| `cantica-tech/catalyst-ui` | software-engineering | 0.119.2 |
-| `cantica-tech/catalyst-users` | software-engineering | 0.119.2 |
-| `cantica-tech/catalyst-mcp` | software-engineering | 0.119.2 |
-| `cantica-tech/catalyst-kb-engine` | software-engineering | 0.119.2 |
-| `cantica-tech/catalyst-knowledge-base` (the KBM repo itself) | software-engineering | 0.119.2 |
-| `cantica-tech/catalyst-docs` | knowledge-base (alone) | 0.114.0 |
+| `cantica-tech/catalyst` | software-engineering | 0.121.0 |
+| `cantica-tech/catalyst-ui` | software-engineering | 0.121.0 |
+| `cantica-tech/catalyst-users` | software-engineering | 0.121.0 |
+| `cantica-tech/catalyst-mcp` | software-engineering | 0.121.0 |
+| `cantica-tech/catalyst-kb-engine` | software-engineering | 0.121.0 |
+| `cantica-tech/catalyst-knowledge-base` (the KBM repo itself) | software-engineering | 0.121.0 |
+| `cantica-tech/catalyst-docs` | knowledge-base (alone) | 0.121.0 |
 
 ## 9. Oddities and gotchas
 
-1. **`Taskfile.module.yml` is dead weight.** Not read since kernel 0.70.0 (`MODULE-SPECIFICATION.md` §6.5), yet SE
-   still ships it, lists it under `contributions.taskfile`, and its `code-of-conduct.module.md` preamble still says
-   each command has "a matching task in `Taskfile.module.yml`". The real tasks come from §4 bullet heads; `/create-*`
-   commands all go through the single `create` task.
+1. ~~**`Taskfile.module.yml` is dead weight.**~~ Fixed in SE 3.5.0: the file is gone; the kernel's
+   `SYNCHRONIZE.md` and module-manifest schema say a module ships no task (`contributions.taskfile` deprecated and
+   ignored). The real tasks come from §4 bullet heads; `/create-*` commands all go through the single `create` task.
 2. **Stale spec text.** `MODULE-SPECIFICATION.md` §2 shows `schemas/` (format 2) and says the module is seeded into
    `.criterion/modules/<id>/`; deployments now keep it in `$CATALYST_HOME/projects/<name>/criterion/modules/<id>/`.
    Several SE templates and migrations still cite old section numbers (`Rules-of-Rules.md` §20/§21, INV-14/27).
-   `ui/Backlog.tsx` cites INV-14 (now INV-SE-2). SE `ROADMAP.md` is a historical, largely realized plan still labelled
-   "Draft / Proposed".
+   `ui/Backlog.tsx` cites INV-14 (now INV-SE-2). ~~SE `ROADMAP.md` is a historical, largely realized plan still
+   labelled "Draft / Proposed".~~ Marked historical on 2026-10-31.
 3. **Migrations are keyed by kernel version, not module version.** KBM's three migrations all live under `0.107.0`
    although modules 0.5.1 and 0.6.0 shipped alongside kernels 0.109.0 and 0.114.0; two have From = Target = 0.107.0.
    Read the "Module x.y.z" in the description to know which module upgrade triggers each.
@@ -1655,16 +1668,14 @@ and installed versions are kept in its criterion's `modules/modules.json`), as r
 5. **`module.yaml` commands vs §4.** KBM's `commands:` omits `create-knowledge-source` and `kb-audit` has no
    `argument_hint` though §4 says `[<KB-id>]`; KBM's `kb-build` description says "vector database" though Folders
    builds exist. (Parity script accepted; not a runtime issue.)
-6. **`entry: "ui/index.js"` in every manifest** — hard-coded by the packager. KBM has no `ui/`; SE ships `.tsx`
-   sources only (no compiled `index.js` in the zip). SE's `ui/package.json` version (2.0.0) is unrelated to the
-   module version.
-7. **Module packaging takes the working tree, not the tag.** `package_release.py` packages whatever each sibling
-   checkout holds (it refuses an untagged kernel, never an untagged module) and re-packages **every** catalogued
-   module each run. Check out each module at its release tag before publishing. Packaging also leaves untracked
-   `catalyst/modules/<id>/v*/` folders in the module's development checkout (seen in SE).
-8. **KBM's `GUIDE.md` says the engine is unreleased** ("until it is released, the commands … are carried out by the
-   agent"), while `catalyst-kb-engine` has tags up to 0.9.0. Treat the engine as optional; agent-run procedures are
-   authoritative.
+6. ~~**`entry: "ui/index.js"` in every manifest**~~ Fixed in kernel 0.121.0: a manifest names an `entry` only when
+   the release ships the built UI bundle (the SE 3.6.0 manifest has none). SE still ships `.tsx` sources only; SE's
+   `ui/package.json` version (2.0.0) is unrelated to the module version.
+7. ~~**Module packaging takes the working tree, not the tag.**~~ Fixed in kernel 0.121.0: publishing refuses a module
+   checkout not at its version's tag (unless `--unreleased`), `--module <id>` packages only the modules named, and
+   nothing is written into a module checkout.
+8. ~~**KBM's `GUIDE.md` says the engine is unreleased.**~~ Fixed on 2026-10-31: `GUIDE.md` says the engine is
+   released. Agent-run procedures stay authoritative where the engine is not installed.
 9. **KBUILD `Version` is free text**: the field hint asks for `MAJOR.MINOR.PATCH`, unique in the knowledge base,
    but the field's kind is `text`, so nothing enforces the format.
 10. **No declared transitions** in either module: any status move passes unless a guard fails (e.g. `Draft →
@@ -1675,17 +1686,21 @@ and installed versions are kept in its criterion's `modules/modules.json`), as r
 13. **`Hosted embedding up to`: never write `None`** — catalyst reads `none` as empty; use
     `Local only`.
 14. **A private source without `Visibility` gets no floor** (migration 0.6.0): record Visibility on every source.
-15. **catalyst CI pins the KBM fixture at 0.4.1** (`cantica-tech/catalyst:.github/workflows/tests.yml`,
-    `CATALYST_KB_MODULE`), well behind 0.6.1; the SE module is not a CI fixture there.
+15. ~~**catalyst CI pins the KBM fixture at 0.4.1.**~~ Fixed in kernel 0.120.0: the fixture is KBM 0.6.1; the SE
+    module is still not a CI fixture there.
 16. **The KBM repository is governed by SE**, not by KBM (its `catalyst.toml` says `module = "software-engineering"`);
-    its `catalyst.toml` is excluded from the release. The module repo has no CI and no development branch.
-17. **Distribution gaps**: KBM 0.4.0/0.4.1 never reached `cantica-tech/cantica-tech`; the old
-    `cantica-knowledge-base` 0.1.0 package remains only in the module repo.
+    its `catalyst.toml` is excluded from the release. ~~The module repo has no CI and no development branch.~~ Since
+    2026-10-31/11-01 it has CI (Standards, Install) and a `development` branch, the default.
+17. **Distribution gaps**: KBM 0.4.0/0.4.1 never reached `cantica-tech/cantica-tech`. ~~The old
+    `cantica-knowledge-base` 0.1.0 package remains only in the module repo.~~ Removed on 2026-11-01 (git history keeps
+    it).
 18. **Identity is mandatory for install**: no `init`/`module install` without catalyst-users and a verified identity
     (tests use a `static` backend gated by `CATALYST_ALLOW_STATIC_IDENTITY=1`, not for production).
 19. **One grounding type per criterion**: a module grounding on anything but `rule` cannot join SE/KBM.
-20. **Feature back-reference name mismatch**: `REQ.Feature` declares `backref: Requirements`, but the `FEAT-` field
-    is named `Requirement(s)`; whether `catalyst new` back-fills it was not verified (§11).
+20. ~~**Feature back-reference name mismatch**: `REQ.Feature` declared `backref: Requirements`, but the `FEAT-`
+    field is named `Requirement(s)`.~~ Fixed in SE 3.5.0: `REQ.Feature`'s back-reference is `Requirement(s)`.
+21. **New, SE 3.6.0: a roadmap row can be `Done` with features only.** A row whose linked `FEAT-`s are all closed is
+    `Done`; before 3.6.0 it stayed `Triaged`. Run `/show-backlog` after closing a feature to refresh the rows.
 
 ## 10. Roadmap and next steps
 
@@ -1702,10 +1717,11 @@ From `cantica-tech/catalyst:docs/roadmap.md` and the modules' own documents:
 - **KBM**: release/integration of `catalyst-kb-engine` as the executor of `/kb-setup` and `/kb-build`
   (`docs/engine-and-onboarding.md` §5–6: onboarding and build graphs, Docling parsing, LanceDB/Parquet output,
   durable state in criterion records).
-- **SE**: no open roadmap of its own; its `ROADMAP.md` (modularization) is realized (format 3, kernel module-agnostic,
-  sample module in CI).
-- Housekeeping implied by §9: drop `Taskfile.module.yml` and its contribution, fix stale citations, reconcile the
-  duplicate `/create decision`, move CI's KBM fixture to the current tag, add a module-tag check to packaging.
+- **SE**: no open roadmap of its own; its `ROADMAP.md` (modularization) is realized and marked historical (format 3,
+  kernel module-agnostic, sample module in CI).
+- Housekeeping implied by §9: ~~drop `Taskfile.module.yml` and its contribution~~ (SE 3.5.0), fix stale citations,
+  reconcile the duplicate `/create decision`, ~~move CI's KBM fixture to the current tag~~ (kernel 0.120.0), ~~add a
+  module-tag check to packaging~~ (kernel 0.121.0).
 
 ## 11. Unverified
 
@@ -1714,8 +1730,8 @@ From `cantica-tech/catalyst:docs/roadmap.md` and the modules' own documents:
   which passed (35 tests) in an isolated home.
 - Whether catalyst-ui's extension can actually load SE's UI from a zip that contains only `.tsx` (manifest
   `entry: ui/index.js`) was not tested.
-- Whether `catalyst new REQ --field Feature=…` writes the feature's `Requirement(s)` despite the `backref: Requirements`
-  name (§9.20).
+- ~~Whether `catalyst new REQ --field Feature=…` writes the feature's `Requirement(s)` despite the
+  `backref: Requirements` name (§9.20).~~ Moot since SE 3.5.0 names the back-reference `Requirement(s)`.
 - Whether `scripts/check_command_parity.py` flags KBM's `commands:` omissions was not run.
 - `catalyst module install` from a git URL with `@<tag>` over the network, `module available`, and `module upgrade`
   without a source were not exercised.

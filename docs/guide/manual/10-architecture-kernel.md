@@ -3,9 +3,9 @@ title: "10 — catalyst kernel: architecture"
 classification: Public
 ---
 
-Hand-off reference for the catalyst kernel (GitHub `cantica-tech/catalyst`, kernel **0.119.2**, on-disk format **1.0-rc**), its CLI, its on-disk formats, and how it is built, released and distributed. Its companion, `20-deploy-kernel.md`, gives the install and operate procedure.
+Hand-off reference for the catalyst kernel (GitHub `cantica-tech/catalyst`, kernel **0.121.0**, on-disk format **1.0-rc**), its CLI, its on-disk formats, and how it is built, released and distributed. Its companion, `20-deploy-kernel.md`, gives the install and operate procedure.
 
-Sources are cited as `cantica-tech/<repo>:<path>`. Where this document says "observed", the fact comes from a throwaway install made for this documentation (release kernel 0.119.2 + `software-engineering` 3.4.1, taken from the distribution repository, with a sandboxed `HOME`). Paths in catalyst's home are written as `$HOME/.catalyst/...` (or `$CATALYST_HOME/...`).
+Sources are cited as `cantica-tech/<repo>:<path>`. Where this document says "observed", the fact comes from a throwaway install made for this documentation (release kernel 0.119.2 + `software-engineering` 3.4.1, taken from the distribution repository, with a sandboxed `HOME`). The 2026-11-01 refresh adds what kernels 0.120.0 and 0.121.0 changed, read from `cantica-tech/catalyst:CHANGELOG.md` and `framework/kernel/CLI.md`; those changes were not re-observed in a sandbox. Paths in catalyst's home are written as `$HOME/.catalyst/...` (or `$CATALYST_HOME/...`).
 
 ---
 
@@ -90,7 +90,7 @@ At commit granularity, every product commit cites an artifact or rule ID that re
 | **project** | A product repository (or subfolder) governed by catalyst: the directory holding `catalyst.toml` (the *project root*). | `framework/kernel/FORMAT.md` §1 |
 | **criterion** (or working copy) | The project's governance record: its own git repository at `$CATALYST_HOME/projects/<project_name>/criterion`. In the journal and in documents, `.criterion/<path>` names a criterion file; this is a namespace, not a directory in the project. | `FORMAT.md` §2, INV-6 |
 | **catalyst home** | `$CATALYST_HOME`, default `$HOME/.catalyst`. Holds criteria, runtimes, the launcher, identity tokens, the machine id and catalyst-users' settings. | `scripts/project_file.py` `home()` |
-| **kernel** | `framework/kernel/` plus the CLI. Versioned by the root `version.txt` (0.119.2). It never names a module (INV-30). | INV-3, INV-30 |
+| **kernel** | `framework/kernel/` plus the CLI. Versioned by the root `version.txt` (0.121.0). It never names a module (INV-30). | INV-3, INV-30 |
 | **process module** | A repository `catalyst-<id>` that ships entity types (ETDs), templates, definitions, meta-rules, commands, invariants and migrations. It is seeded into `criterion/modules/<id>/`. | `framework/kernel/MODULE-SPECIFICATION.md` |
 | **ETD** | Entity Type Definition: a YAML file declaring a type's prefix, folder, fields, grounding and workflow. | `MODULE-SPECIFICATION.md` §4 |
 | **rule document / prefix** | A Markdown file under `rules/` holding rules; each has a short lowercase ID prefix (e.g. `br`, `env`, `fw`). | `FORMAT.md` §5 |
@@ -180,9 +180,9 @@ flowchart LR
 |---|---|---|
 | `cantica-tech/catalyst` | public | Kernel sources, CLI sources, docs, ADRs, release scripts. Branches `development` → `main` → `release`; tags `X.Y.Z` (older tags `vX.Y.Z`). |
 | `cantica-tech/cantica-tech` | public | **Distribution repository**: released kernel zips, module zips, VS Code `.vsix`, an example project. Branch `main` only. |
-| `cantica-tech/catalyst-software-engineering` | public | Process module `software-engineering` (3.4.1 at time of writing). Tags on `main` (no `release` branch). |
+| `cantica-tech/catalyst-software-engineering` | public | Process module `software-engineering` (3.6.0 at time of writing). Tags on `main` (no `release` branch); no release zip in the repository since 3.5.0. |
 | `cantica-tech/catalyst-knowledge-base` | public | Process module `knowledge-base` (KBM). It is also a CI fixture of the kernel (tag `0.4.1` in `tests.yml`). |
-| `cantica-tech/catalyst-users` | public | Identity facade (Keycloak). Its stdlib core is **vendored** into the kernel under `scripts/catalyst/identity/` (release 0.7.0, see `VERSION`). |
+| `cantica-tech/catalyst-users` | public | Identity facade (Keycloak). Its stdlib core is **vendored** into the kernel under `scripts/catalyst/identity/` (release 0.11.0 since kernel 0.120.0, see `VERSION`). |
 | `<project>-criterion` (convention) | **private** | Each project's own criterion repository (shared branch `criterion`). |
 | `cantica-tech/standards` | public | Shared lint/format/typecheck workflow (`lint.yml@v0.1.2`) used by the kernel's CI. |
 | `cantica-tech/catalyst-docs` | public | The user-facing guide (published at `cantica-tech.github.io/catalyst-docs`). |
@@ -220,7 +220,7 @@ catalyst/
   BOOTSTRAP.md            single install entry point (laws, capabilities, install, anti-drift, assent)
   CLAUDE.md AGENT.md SYSTEM.md   thin per-agent shims pointing at BOOTSTRAP.md
   README.md CONTRIBUTING.md CHANGELOG.md SECURITY.md LICENSE (Apache-2.0)
-  version.txt             kernel version (0.119.2)
+  version.txt             kernel version (0.121.0)
   catalyst.toml           catalyst's own deployment (it governs itself, "dogfooding")
   Taskfile.yml            repo tasks: test, check:*, build:cli, catalyst, release, release:publish
   pyproject.toml          name "catalyst", requires-python >=3.11, stdlib only, zipapp not installed
@@ -253,7 +253,7 @@ catalyst/
   scripts/
     catalyst/             THE CLI PACKAGE (see §6)
     project_file.py module_loader.py   imported by the CLI (shipped in the zipapp)
-    package_release.py    build_cli(), package_kernel(), package_modules(), publish_releases()
+    package_release.py    build_cli(), package_kernel(), package_modules(), publish_releases() (modules: only to the distribution repo)
     check_deployment.py check_command_parity.py check_kernel_purity.py
     check_frozen_surface.py check_token_budgets.py measure_tokens.py
     gen_docs.py           regenerates the generated blocks of CLI.md / FORMAT.md / MODULE-SPECIFICATION.md
@@ -277,7 +277,7 @@ Location: `cantica-tech/catalyst:scripts/catalyst/` (~25.5k lines, **standard li
 
 Entry point: `__main__.py` (argparse, ~3.7k lines). Every subcommand finds the deployment by walking up to the nearest `catalyst.toml` (or `--project`), or opens a bare criterion with `--working-copy`. It prints JSON with `--json`, matching `spec/*.schema.json`.
 
-Exit codes: `0` ok · `1` failure · `2` no deployment (or usage error) · `3` needs the user's assent (`--yes`).
+Exit codes: `0` ok · `1` failure · `2` usage error (and a blocking `hook stop`) · `3` needs the user's assent (`--yes`) · `4` no deployment (since 0.121.0; it was `2` before, rule `fw-STRUCTURE-000025`).
 
 The main modules grouped by role, with the calls a writing verb makes (§21.2):
 
@@ -503,7 +503,7 @@ $HOME/.catalyst/projects/<name>/criterion/
   modules/<module-id>/          the module release tree as shipped
   modules/declined.json         (optional) declined optional templates
   IAM/
-    identity.json               pointer to catalyst-users ({"provider","issuer"[,"client","catalyst_client"]})
+    identity.json               pointer to catalyst-users ({"provider","issuer"[,"client","catalyst_client"]}; one shape since 0.120.0)
     signers.jsonl               signers ledger
     landing.json                (optional) landing policy
     gates.json                  (optional) approval gates
@@ -545,7 +545,7 @@ It uses flat `key = value` lines and never holds a path (`FORMAT.md` §1). Obser
 # catalyst project file: names this project's criterion ($HOME/.catalyst/projects/<project_name>/criterion). Never a path.
 project_name = "shop"
 format = "1.0-rc"
-kernel_version = "0.119.2"
+kernel_version = "0.121.0"
 module = "software-engineering"
 agent = "claude-code"
 repoed = false
@@ -581,9 +581,9 @@ Legacy keys are read, never written: `name`, `framework_version`, `agent-source`
 
 ## 9. Kernel, modules and composition
 
-- A module repository holds `module.yaml` (manifest: id, version, `kernel_version` range, entity types/ETDs, tiers, aliases, namespace, `required_paths`…), `schemas/*.yaml` (ETDs), `templates/`, `definitions/`, `rules-of-rules.module.md`, `code-of-conduct.module.md`, `INVARIANTS.module.md`, `migrations/`, and optionally `skills/` and `ui/`. `Taskfile.module.yml` has not been read since kernel 0.70.0 (`MODULE-SPECIFICATION.md` §2, §6.5).
-- **Release tree.** A module release zip is the shipped files plus a `manifest.json`. `init` and `sync` seed the same tree into `criterion/modules/<id>/` and record its sha256 (LF-normalised) in `modules/modules.json`. `catalyst module verify` and `check` recompute the hash.
-- **Kernel range.** `init` refuses a module whose `kernel_version` excludes the kernel (`versions.py`). SE 3.4.1 declares `>=0.83.0`.
+- A module repository holds `module.yaml` (manifest: id, version, `kernel_version` range, entity types/ETDs, tiers, aliases, namespace, `required_paths`…), `schemas/*.yaml` (ETDs), `templates/`, `definitions/`, `rules-of-rules.module.md`, `code-of-conduct.module.md`, `INVARIANTS.module.md`, `migrations/`, and optionally `skills/` and `ui/`. `Taskfile.module.yml` has not been read since kernel 0.70.0 (`MODULE-SPECIFICATION.md` §2, §6.5); SE removed its copy in 3.5.0, and the manifest's `contributions.taskfile` is deprecated and ignored.
+- **Release tree.** A module release zip is the shipped files plus a `manifest.json`; it lives only in the distribution repository (`cantica-tech/cantica-tech:catalyst/modules/<id>/v<ver>/`) since kernel 0.121.0, and its manifest's `entry` names a UI bundle only when the release ships one. `init` and `sync` seed the same tree into `criterion/modules/<id>/` and record its sha256 (LF-normalised) in `modules/modules.json`. `catalyst module verify` and `check` recompute the hash.
+- **Kernel range.** `init` refuses a module whose `kernel_version` excludes the kernel (`versions.py`). SE 3.6.0 declares `>=0.83.0`.
 - **Several modules.** `catalyst module install <dir|zip|git-url[@ref]>` adds one beside the first. It refuses collisions on: ID, prefix, folder, definition, namespace, meta-rule ID, command, conflicting tier, or a different grounding type. Modules are loaded in `modules.json` order. The second module's invariants stay in its own folder.
 - **Kernel purity (INV-30).** `scripts/check_kernel_purity.py` derives a denylist from the catalogued modules and fails if the kernel, `scripts/` or root docs (CHANGELOG included) name a module, prefix, folder or command.
 
@@ -749,12 +749,12 @@ Design 28/29, `scripts/catalyst/provider.py`, INV-16, `FORMAT.md` §6.
 {"provider": "keycloak", "issuer": "http://localhost:8080/realms/catalyst"}
 ```
 
-Optional keys are `client`, the public device-grant client (default `catalyst-cli`), and `catalyst_client`, the client whose roles carry the grants (default `catalyst`). A `keycloak` pointer may give `url` + `realm` instead of `issuer`. `static` is a test-only provider: it is refused unless `CATALYST_ALLOW_STATIC_IDENTITY=1`, and `check` warns about it.
+Optional keys are `client`, the public device-grant client (default `catalyst-cli`), and `catalyst_client`, the client whose roles carry the grants (default `catalyst`). Since kernel 0.120.0 the pointer has **one shape**, the `issuer` (BUG-000057): a pointer that still names its provider by `url` + `realm` (as `init` once copied it from catalyst-users' settings) is read as its issuer, `check` warns about it, and `catalyst migrate --apply` rewrites it (migration 0.120.0). Providers are compared by their **canonical issuer** (`canonical_issuer`: a loopback host — `localhost`, `127.0.0.1`, `::1` — is `localhost`, no trailing `/`). `static` is a test-only provider: it is refused unless `CATALYST_ALLOW_STATIC_IDENTITY=1`, and `check` warns about it.
 
 **Who signs** (`provider.verify`):
 
-1. The person logged in with `catalyst identity login [--issuer <url>]`. This is an OIDC device flow: the CLI shows a URL and code, and the user approves in a browser. Tokens are stored in `$CATALYST_HOME/identity/<sha256(issuer\nclient)[:16]>.json`, owner-only. Each signature refreshes the token and reads userinfo.
-2. Otherwise, the machine's **system account**. catalyst-users `setup` records an admin `username` and a `password_command` (e.g. a keychain read) in `$CATALYST_HOME/users/IAM/settings.json`. When those settings point at the **same issuer**, catalyst signs as that account with a password grant and says so on stderr (`catalyst: no one is logged in: signing as the system account <user>`).
+1. The person logged in with `catalyst identity login [--issuer <url>]`. This is an OIDC device flow: the CLI shows a URL and code, and the user approves in a browser; since 0.120.0, `identity login --password` is a password login through the provider's password client (REQ-000107), the password taken from `--password-command`, else one line of standard input, else asked without echo, never an argument. Tokens are kept per provider (its canonical issuer and client), owner-only: when this machine's catalyst-users is set up for the same provider and login client, in **catalyst-users' own credentials file**, so one login serves both tools and a logout from either ends both (REQ-000108); otherwise in `$CATALYST_HOME/identity/<key>.json`. A token file kept under the pre-0.120.0 `url` shape is no longer read: log in once more. Each signature refreshes the token and reads userinfo.
+2. Otherwise, the machine's **system account**. catalyst-users `setup` records an admin `username` and a `password_command` (e.g. a keychain read) in `$CATALYST_HOME/users/IAM/settings.json`. When those settings name the **same provider** — compared by canonical issuer since 0.120.0, so another spelling of the same host matches (BUG-000058, catalyst-users' `system_pointer`) — catalyst signs as that account with a password grant, reached at the pointer's spelling, and says so on stderr (`catalyst: no one is logged in: signing as the system account <user>`). `catalyst hook start` says once per session when no one is logged in and who would sign, the system account or nobody (REQ-000109).
 3. Otherwise there is **no verified identity**: nothing is signed, and the writing verb fails and points to `catalyst identity login`. Read verbs still work. git config is never used to guess identity. `--as <name>` can only name the verified identity itself. `journal adopt` keeps the git author only as `commit_author`.
 
 The device flow of `catalyst identity login` (RFC 8628):
@@ -773,7 +773,7 @@ sequenceDiagram
   B->>KC: approves the code
   CLI->>KC: polls for the token
   KC-->>CLI: tokens
-  CLI->>CLI: stores identity/sha16.json, owner-only
+  CLI->>CLI: stores the tokens per provider, owner-only<br/>(catalyst-users' credentials file when shared)
 ```
 
 The three cases above as a decision, followed by the grant check every writing verb makes:
@@ -791,9 +791,9 @@ flowchart TD
   G -- "no" --> RF["refused, or a warning with role_check = warn"]
 ```
 
-**Grants** come from the provider's token: `cmd:<command>`, `cmd:*`, and `reconcile:full|propose` (none → `none`). A role's name grants nothing. A person whom catalyst-users lists as administering the criterion (`administers` contains `project_name`) gets the Criterion Admin grants and `reconcile:full` in that criterion only. A writing verb refuses a signer whose grants do not allow its command; `role_check = "warn"` turns the refusal into a warning.
+**Grants** come from the provider's token: `cmd:<command>`, `cmd:*`, and `reconcile:full|propose` (none → `none`). A role's name grants nothing. A person whom catalyst-users lists as administering the criterion (`administers` contains `project_name`) gets the Criterion Admin grants and `reconcile:full` in that criterion only. A writing verb refuses a signer whose grants do not allow its command; `role_check = "warn"` turns the refusal into a warning. Since 0.120.0 (BUG-000050) every writing verb checks the grant **of the command its change is for**: its own §4 command when the deployment composes one, else the command it serves (`create`; `status` for `approve`; `share` for `landing init`; `reconcile` for `propose` and `reconcile`). Before, `id next|next-rule`, `approve`, `propose`, `reconcile`, `repair derived` and `landing init` checked none, and `rename`, `edit`, `link`, `unlink` were checked as `create`. `share create` and `criterion create|join` sign as the verified identity (BUG-000049).
 
-**Signers ledger.** An identity's first signature appends `{"userid","iss","sub","username","name","first_signed"}` to `IAM/signers.jsonl`. This is journaled, append-only and union-merged. The person is (`iss`, `sub`). The `username` becomes the journal `actor`.
+**Signers ledger.** An identity's first signature appends `{"userid","iss","sub","username","name","first_signed"}` to `IAM/signers.jsonl`. This is journaled, append-only and union-merged. The person is (`iss`, `sub`), with `iss` compared as a canonical issuer since 0.120.0: one person signing in at `localhost` and at `127.0.0.1` keeps one line and one userid (no line is rewritten). The `username` becomes the journal `actor`.
 
 **Snapshot.** The verified identity (username, name, groups, roles, grants) is written to `$CATALYST_HOME/identity/<key>.snapshot.json` with a content hash. If the snapshot has been edited, it is discarded and the person re-authenticated. Role changes in the provider are seen at the next signature.
 
@@ -825,7 +825,7 @@ sequenceDiagram
 
 Keycloak 26.4.0 runs via `docker compose up -d` in `cantica-tech/catalyst-users` on `127.0.0.1:8080`.
 
-**Kernel CLI verbs:** `identity configure|login|logout|whoami|status|link`. `user …` and `role …` exist but always refuse.
+**Kernel CLI verbs:** `identity configure|login [--password]|logout|whoami|status|link`. `user …` and `role …` take anything and always refuse, pointing to catalyst-users (their options and `spec/user|role.schema.json` are gone since 0.120.0).
 
 ---
 
@@ -969,8 +969,10 @@ flowchart TD
 - **Who fills them**:
   - `init` (unless `--no-runtime`);
   - `catalyst runtime install`;
-  - `catalyst open` (refills when the marker differs from the vendored CLI's version; observed: init wrote `0.119.2`, and `open` then refilled it as `0.119.2+gd5e2a1bea451`, creating a second runtime dir);
+  - `catalyst open` (refills when the marker differs from the vendored CLI's version; observed on 0.119.2: init wrote `0.119.2`, and `open` then refilled it as `0.119.2+gd5e2a1bea451`, creating a second runtime dir — since 0.120.0 `init` labels the runtime as `open` does, BUG-000055);
   - `sync apply` (brings `.venv` to the newly vendored CLI).
+- **Who empties them** (since 0.120.0, REQ-000104): `catalyst runtime prune` lists the runtimes no criterion in the home uses, and the space they take; with `--yes` it removes them and any half-built runtime. It keeps the versions the home's criteria carry in their `.venv`, the running catalyst's and the newest.
+- Since 0.120.0 every `catalyst.pyz` carries its `framework/kernel`, so `init` runs from the launcher with no checkout and no `--kernel` (REQ-000106), and vendors the `catalyst.pyz` it runs from.
 - Observed: uv picked a system Python 3.14 in the sandbox.
 
 The launcher's choice, as a decision:
@@ -1000,12 +1002,12 @@ flowchart TD
 | `copilot` | `~/.copilot/mcp-config.json`, `~/.copilot/hooks/catalyst.json` (also read by VS Code's agent) |
 | `vscode` | user-profile `mcp.json` |
 | `cursor` | `~/.cursor/mcp.json`, `hooks.json` |
-| `codex` | `[mcp_servers.catalyst]` in `~/.codex/config.toml`, `~/.codex/hooks.json` |
+| `codex` | `[mcp_servers.catalyst]` in `~/.codex/config.toml`; `$CODEX_HOME/hooks.json` (else `~/.codex`) with the Stop hook and, since 0.120.0, the session-start hook `catalyst hook start --quiet` (BUG-000048) |
 | `gemini` | `~/.gemini/settings.json` (MCP + `AfterAgent` hook) |
 
 Only catalyst's entries change (they are recognised by the launcher path). Each file is backed up once as `<file>.before-catalyst`. A non-JSON file is left alone and the snippet is printed. If `claude` is not on PATH, the MCP command to run by hand is printed. Observed: `install` then `status` shows `claude-code installed hooks.Stop yes, hooks.SessionStart yes, mcp (user scope) yes`, and `uninstall` cleared both.
 
-`agents/claude-code/plugin` is the same wiring as a Claude Code plugin (`plugin.json` with `mcpServers.catalyst` and the two hooks).
+`agents/claude-code/plugin` is the same wiring as a Claude Code plugin (`plugin.json` with `mcpServers.catalyst` and the two hooks); since 0.120.0 it runs the launcher in `$CATALYST_HOME/bin` (default `~/.catalyst/bin`). The `${CATALYST_HOME}` expansion in the plugin's arguments was not verified live.
 
 **`catalyst hook start`** (session start):
 
@@ -1070,7 +1072,7 @@ sequenceDiagram
 
 **Git hook** (agent-independent): `catalyst hook install` writes `.git/hooks/commit-msg` (a Python script calling `catalyst hook commit-msg`). It requires each commit to cite a resolving ID or be `chore:`, and routes staged files to their owning deployment. Bypass with `git commit --no-verify`.
 
-**Dispatch**: `catalyst task <name> -- <args>` runs a `Taskfile.common.yml` task with go-task from the project root. The task calls `{{.AGENT_CMD}} "/<name> {{.CLI_ARGS}}"`, where `AGENT_CMD` is derived from `agent` (`claude-code` → `claude -p`) or the `AGENT_CMD` env var. `catalyst agent run <command>` dispatches non-interactively and streams events with token cost (Claude Code adapter only).
+**Dispatch**: `catalyst task <name> -- <args>` runs a `Taskfile.common.yml` task with go-task from the project root. The task calls `{{.AGENT_CMD}} "{{.CMD_PREFIX}}<name> {{.CLI_ARGS}}"`, where `AGENT_CMD` is derived from `agent` (`claude-code` → `claude -p`) or the `AGENT_CMD` env var, and `CMD_PREFIX` (since 0.120.0, BUG-000047) names the command the way the agent serves it: `/catalyst:` (the `catalyst mcp` server's prompt) for Claude Code, `/` for other agents; set it to override. The new `Taskfile.common.yml` arrives with the next `/sync-framework`. `catalyst agent run <command>` dispatches non-interactively and streams events with token cost (Claude Code adapter only); since 0.121.0 an unknown command exits `2` before the agent's CLI is looked for, and a missing adapter or CLI exits `1`.
 
 ---
 
@@ -1298,17 +1300,17 @@ Before pushing a kernel release, run `python3 scripts/check_kernel_purity.py`, b
 flowchart LR
   T["tag X.Y.Z on release"] --> W["git worktree at the tag"]
   W --> P["task release:publish PUBLISH_DIR=checkout of cantica-tech/cantica-tech"]
-  P --> M["package_modules: each catalogued module checked out as ../catalyst-id:<br/>zip + manifest.json into the module repo's catalyst/modules/id/vVER/;<br/>with --push, commit to the module's main via a temporary worktree"]
+  P --> M["package_modules: each catalogued module checked out as ../catalyst-id<br/>at its version's tag: zip + manifest.json staged in this checkout's<br/>ignored catalyst/modules/id/vVER/, never in the module repository"]
   P --> K["package_kernel: framework/kernel + agents/ + bin/catalyst.pyz + LICENSE + manifest.json<br/>into catalyst/kernel/vVER/: kernel-vVER.zip, catalyst.pyz, manifest.json"]
   K --> D["publish_releases: copy into PUBLISH_DIR/catalyst/kernel/vVER/<br/>and catalyst/modules/id/vVER/, refresh READMEs"]
   M --> D
-  D --> G["git commit Deploy release: kernel vVER, ...<br/>git push origin main (cantica-tech/cantica-tech)"]
+  D --> G["git commit Deploy release: kernel vVER, ...<br/>git push origin main (cantica-tech/cantica-tech only)"]
 ```
 
-- `scripts/package_release.py --publish-dir DIR` **refuses** (exit 2) unless the checkout is exactly at the tag `<ver>` or `v<ver>`. `--unreleased` overrides this.
-- `task release` packages and runs the checks without publishing. `task release:publish` adds `--push`, which pushes the module repositories' `main` **and** the distribution repository.
+- `scripts/package_release.py --publish-dir DIR` **refuses** (exit 2) unless the checkout is exactly at the tag `<ver>` or `v<ver>`; since 0.121.0 it refuses a module checkout that is not at its version's tag the same way. `--unreleased` overrides this. `--module <id>` packages and publishes only the modules named; `--no-kernel` leaves the kernel out.
+- `task release` packages and runs the checks without publishing. `task release:publish PUBLISH_DIR=<dir> -- [--module <id>] [--no-kernel]` adds `--push`, which commits and pushes **the distribution repository alone**: since 0.121.0 (REQ-000112) nothing is written into a module repository (before, each module's zip was committed to its own `main`). A release manifest's `entry` names the module's built UI bundle (`module.yaml`'s `entry`, else `ui/index.js`) only when the release ships it.
 - Distribution layout (`cantica-tech/cantica-tech`):
-  - `catalyst/kernel/v<ver>/{kernel-v<ver>.zip, catalyst.pyz, manifest.json}` (v0.32.0 … v0.119.2);
+  - `catalyst/kernel/v<ver>/{kernel-v<ver>.zip, catalyst.pyz, manifest.json}` (v0.32.0 … v0.121.0);
   - `catalyst/modules/software-engineering/v<ver>/software-engineering-v<ver>.zip` (+manifest);
   - `catalyst/modules/knowledge-base/v<ver>/…`;
   - `catalyst/vsix/` (VS Code extension, published from catalyst-ui);
@@ -1325,8 +1327,8 @@ flowchart LR
 
 | Workflow | Jobs |
 |---|---|
-| `deployment-rules.yml` | Python 3.11. Clones every catalogued module. For each one, installs a **scratch deployment** (`python3 -m catalyst init … --at <dir>` with `CATALYST_ALLOW_STATIC_IDENTITY=1`), then runs `check_deployment.py --require`, `check_command_parity.py --require` and `catalyst check`. Then runs `check_kernel_purity.py` (modules dir from `CATALYST_MODULES_DIR`) and `catalyst trace --pattern-only <range>` (every commit cites an ID or is `chore:`). |
-| `tests.yml` | pytest on ubuntu/macos/windows × Python 3.11/3.13, with `cantica-tech/catalyst-knowledge-base@0.4.1` checked out as the second-module fixture (`CATALYST_KB_MODULE`, `CATALYST_REQUIRE_FIXTURES=1`). |
+| `deployment-rules.yml` | Python 3.11. Clones every catalogued module. For each one, installs a **scratch deployment** (`python3 -m catalyst init …` into a scratch `CATALYST_HOME`, one per module, with `CATALYST_ALLOW_STATIC_IDENTITY=1`; the legacy `--at` is gone since 0.120.0), then runs `check_deployment.py --require`, `check_command_parity.py --require` and `catalyst check`. Then runs `check_kernel_purity.py` (modules dir from `CATALYST_MODULES_DIR`) and `catalyst trace --pattern-only <range>` (every commit cites an ID or is `chore:`). |
+| `tests.yml` | pytest on ubuntu/macos/windows × Python 3.11/3.13, with `cantica-tech/catalyst-knowledge-base@0.6.1` checked out as the second-module fixture (`CATALYST_KB_MODULE`, `CATALYST_REQUIRE_FIXTURES=1`). |
 | `standards.yml` | `cantica-tech/standards/.github/workflows/lint.yml@v0.1.2` (ruff lint/format, typecheck). |
 
 The three workflows and what each runs:
@@ -1340,7 +1342,7 @@ flowchart LR
   DR1 --> DR2["check_deployment.py, check_command_parity.py, catalyst check"]
   DR --> DR3["check_kernel_purity.py"]
   DR --> DR4["catalyst trace --pattern-only range"]
-  T --> T1["pytest on ubuntu, macos, windows<br/>Python 3.11 and 3.13<br/>KBM 0.4.1 as the second-module fixture"]
+  T --> T1["pytest on ubuntu, macos, windows<br/>Python 3.11 and 3.13<br/>KBM 0.6.1 as the second-module fixture"]
   St --> S1["standards lint.yml@v0.1.2<br/>ruff lint and format, typecheck"]
 ```
 
@@ -1350,10 +1352,11 @@ flowchart LR
 
 ## 24. Known inconsistencies in the sources
 
-(Observed while writing. Do not "fix" them in a deployment; report them upstream.)
+(Observed while writing on 0.119.2. Do not "fix" them in a deployment; report them upstream.) Struck entries were fixed in kernel 0.120.0.
 
-- `framework/kernel/CLI.md` `catalyst init` still says "`--name` names the project; the pointer is `<name>.catalyst`". The current behaviour writes `catalyst.toml`. Several later `criterion create|join` paragraphs also describe the legacy submodule and symlink model, followed by a home-store paragraph.
-- `framework/kernel/ARTIFACT-LAYOUT.md` shows `modules/<id>/schemas/commands/skills`. A module release built with format 3 ships `module.yaml` alone (no `schemas/`), as observed for SE 3.4.1.
-- The init journal entry lists the criterion's own files with `before == after` (not `null`). Only `catalyst.toml` has `before: null`.
-- After `init`, the criterion's first git commit does **not** contain `development/journal/` (observed `?? development/journal/`). The shard is first committed by the next `share push` / `create` or by a manual commit.
-- The CI scratch deployments still use the legacy `--at` flag.
+- ~~`framework/kernel/CLI.md` `catalyst init` still says "`--name` names the project; the pointer is `<name>.catalyst`".~~ Fixed (BUG-000054): `CLI.md` and the help describe the home layout; the legacy pointer is mentioned only as read for old deployments.
+- ~~`framework/kernel/ARTIFACT-LAYOUT.md` shows `modules/<id>/schemas/commands/skills`.~~ Fixed: it shows a deployed module's tree.
+- ~~The init journal entry lists the criterion's own files with `before == after` (not `null`).~~ Fixed (BUG-000056): every installed file is recorded as new.
+- ~~After `init`, the criterion's first git commit does **not** contain `development/journal/`.~~ Fixed (BUG-000056): `init` journals the install before its first commit.
+- ~~The CI scratch deployments still use the legacy `--at` flag.~~ Fixed (BUG-000052): they install into a scratch catalyst home.
+- Still open: the release steps did not journal `SYNCHRONIZE.md` in 0.120.0 and 0.121.0 (seen 2026-11-01).

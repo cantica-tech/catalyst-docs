@@ -3,7 +3,7 @@ title: "90 — Next steps: the fleet's forward plan"
 classification: Public
 ---
 
-This chapter is the consolidated forward plan for the catalyst fleet, as of **2026-10-31** (kernel 0.119.2). It draws only on public sources:
+This chapter is the consolidated forward plan for the catalyst fleet, as of **2026-10-31** (kernel 0.119.2), refreshed on **2026-11-01** (kernel 0.121.0, SE 3.6.0, catalyst UI 0.73.0, catalyst-users 0.11.0): what the two fix rounds of those days finished is struck through (~~like this~~) with the release that did it, and what they left is added. It draws only on public sources:
 
 - the open items in each repository's roadmap (`docs/roadmap.md`);
 - the decision records (`docs/decisions.md`) and design notes (`docs/design/`) that are decided but not fully built;
@@ -44,6 +44,7 @@ Each item gives its status, its horizon and a source. Sources use the same citat
   - [2.3 Designs decided but not fully built](#23-designs-decided-but-not-fully-built)
   - [2.4 Kernel features requested by other repositories](#24-kernel-features-requested-by-other-repositories)
   - [2.5 Documentation hygiene](#25-documentation-hygiene)
+  - [2.6 The next kernel round](#26-the-next-kernel-round-left-by-the-2026-10-31-and-2026-11-01-rounds)
 - [3. SE module](#3-se-module--cantica-techcatalyst-software-engineering)
 - [4. KBM](#4-kbm--cantica-techcatalyst-knowledge-base)
 - [5. catalyst-ui](#5-catalyst-ui--cantica-techcatalyst-ui)
@@ -104,13 +105,13 @@ The real work left is therefore:
 | **First-class agents** (B2): `catalyst agent run` adapters for **Copilot** and **Gemini CLI**. `agent install` already wires all three. | Open | — | 1.0 | docs/decisions.md B2; docs/roadmap.md R5.5 |
 | **Signed releases from an org-owned feed**, and module signatures (R4.9 N4) | Open | Choosing the feed; key custody | 1.0 | docs/roadmap.md R7, R4.9 |
 | **Second module as a pilot**: KBM is the CI fixture. A real pilot is the R7 goal. | In progress | — | 1.0 | docs/roadmap.md R7 |
-| Refresh the beta material for the post-R3 verbs (`share`, the home criterion) | Open (TRIAL.md may be stale) | — | Next | beta/TRIAL.md |
+| ~~Refresh the beta material for the post-R3 verbs (`share`, the home criterion)~~ | Done in 0.120.0 (`beta/TRIAL.md` on the current verbs) | — | — | CHANGELOG 0.120.0 |
 
 The 1.0 gate: what must happen, and in which order.
 
 ```mermaid
 flowchart TD
-    beta["Refresh beta/ for share and the home criterion"] --> trial["Multi-user trial: 2 or more humans, 4 weeks, zero lost work"]
+    beta["beta/ refreshed for share and the home criterion (0.120.0)"] --> trial["Multi-user trial: 2 or more humans, 4 weeks, zero lost work"]
     beta --> newb["Newcomer: first traced change"]
     trial --> q{"Did the trial need a format change?"}
     q -->|"no"| fmt["Declare format 1.0"]
@@ -137,7 +138,7 @@ All of these are open (`docs/roadmap.md` §R6). They also unblock the Studio edi
 | `analysis` and `module` verbs with `--json` | Host-run writes (decision W1) | Next |
 | A dry run of `module upgrade` | Safe upgrades from the UI | Next |
 | `--json` on every write verb that lacks it | W1 | Next |
-| *Stale row:* "a proposal path; rule typing field" | Already done (0.81.0, 0.83.0). Delete the row. | Now |
+| ~~*Stale row:* "a proposal path; rule typing field"~~ | Re-derived in 0.120.0. | — |
 
 How the open R6 items and the decided designs feed the Studio editor (§5.2):
 
@@ -180,31 +181,42 @@ flowchart LR
 
 | Feature | Requested by | Status | Horizon | Source |
 |---|---|---|---|---|
-| `catalyst init` from an **installed runtime**, so no checkout is needed | catalyst-mcp | Open | Next | cantica-tech/catalyst-mcp:README.md |
+| ~~`catalyst init` from an **installed runtime**, so no checkout is needed~~ | catalyst-mcp | Done in 0.120.0 (REQ-000106: every `catalyst.pyz` carries its kernel). catalyst-mcp still asks for `CATALYST_MCP_CATALYST_ROOT`; dropping it is catalyst-mcp's to do | — | CHANGELOG 0.120.0 |
 | **Signing for a verified HTTP caller**, which lifts catalyst-mcp's read-only-over-HTTP rule | catalyst-mcp | Open | Later | cantica-tech/catalyst-mcp:docs/design.md |
-| A batch `view` or a long-lived read process (a full criterion read is about 2.5 min) | kb-engine | Idea | Later | cantica-tech/catalyst-kb-engine:docs/catalyst-docs-progress.md |
+| ~~A batch `view`~~ (several IDs in one process) | kb-engine | Done in 0.120.0 (REQ-000105); the engine's reader is to use it | Next (engine) | CHANGELOG 0.120.0 |
 | A one-line brand footer in the CLI, product-agnostic | catalyst-ui | Open | Later | cantica-tech/catalyst-ui:docs/design/25-brand-spike.md §5 item 9 |
 
 Who asks the kernel for what:
 
 ```mermaid
 flowchart LR
-    mcp["catalyst-mcp"] -->|"init from an installed runtime"| k["Kernel"]
-    mcp -->|"signing for a verified HTTP caller"| k
-    eng["catalyst-kb-engine"] -->|"batch view or a long-lived reader"| k
+    mcp["catalyst-mcp"] -->|"signing for a verified HTTP caller"| k["Kernel"]
+    eng["catalyst-kb-engine"] -->|"identity status agreeing with whoami"| k
     ui["catalyst-ui"] -->|"CLI footer"| k
     ui -->|"R6 json items"| k
 ```
 
 ### 2.5 Documentation hygiene
 
-These are **Now** items.
+All five were done in kernel 0.120.0:
 
-1. **Re-sync `.standards/`** to v0.1.2 (the copy says v0.1.1 while CI calls `lint.yml@v0.1.2`).
-2. Mark the `docs/adr/` statuses as superseded by the decisions recorded in catalyst's own record (decision E), or replace them with pointers. Retire `PARKING.md`.
-3. Delete the stale R6 row (§2.2).
-4. Refresh `docs/feature-register.md`, or declare it historical (last refreshed 2026-10-16).
-5. Bump the KBM fixture in `tests.yml` from 0.4.1 toward 0.6.1 when convenient.
+1. ~~**Re-sync `.standards/`** to v0.1.2.~~ Done.
+2. ~~Mark the `docs/adr/` statuses as superseded; retire `PARKING.md`.~~ Statuses follow the criterion's decisions; `PARKING.md` marked historical.
+3. ~~Delete the stale R6 row (§2.2).~~ Re-derived.
+4. ~~Refresh `docs/feature-register.md`.~~ Re-derived.
+5. ~~Bump the KBM fixture in `tests.yml`.~~ At 0.6.1.
+
+### 2.6 The next kernel round (left by the 2026-10-31 and 2026-11-01 rounds)
+
+| Item | Status | Horizon | Source |
+|---|---|---|---|
+| One create command per entity type | Open | Next | the fix round of 2026-11-01 |
+| `identity status` agreeing with `whoami` (it can say logged in while the system account signs) | Open | Now | same; [80 §1.3.9](80-oddities.md) |
+| The release steps journal `SYNCHRONIZE.md` (missed in 0.120.0 and 0.121.0) | Open | Now | same |
+| Retire the `fw-PLUGINS` rules (the plugin system left in 0.72.0) | Open | Next | same |
+| The flaky journal-shards concurrency test on Windows | Open | Next | same; [80 §1.2.1](80-oddities.md) |
+| Optional template upgrades that `migrate` offers in each deployment | Offered, not taken | Later | same |
+| Verify live: the password and shared logins against a real Keycloak; `claude -p "/catalyst:<cmd>"` resolving the MCP prompt; `${CATALYST_HOME}` in the Claude Code plugin's arguments | Not verified | Now | the fix round of 2026-10-31 |
 
 ---
 
@@ -212,8 +224,11 @@ These are **Now** items.
 
 | Item | Status | Horizon | Source |
 |---|---|---|---|
-| Retire or rewrite `ROADMAP.md` as historical | Open | Later | ROADMAP.md |
-| Delete or gitignore the in-repo release copies under `catalyst/module(s)/` | Open | Next | repo tree |
+| ~~Retire or rewrite `ROADMAP.md` as historical~~ | Done 2026-10-31 | — | ROADMAP.md |
+| ~~Delete or gitignore the in-repo release copies under `catalyst/module(s)/`~~ | Done in 3.5.0 (34 zips removed; kernel 0.121.0 writes none) | — | commit `85beef4` |
+| ~~Drop the dead `Taskfile.module.yml`; name `REQ.Feature`'s back-reference `Requirement(s)`~~ | Done in 3.5.0 | — | commits `5865ab2`, `cc6872a` |
+| ~~A roadmap row Done when every linked feature and requirement is closed~~ | Done in 3.6.0 | — | commit `e43c912` |
+| Re-sync `.standards/` to v0.1.2 (the copy says v0.1.1) | Open | Now | .standards/VERSION |
 | Add tests or a scratch-deployment job to its own CI (today: lint only) | Idea | Later | .github/workflows |
 | Roadmap rows with dates and an assignee (B9), already in 3.4.0; the Studio's Gantt view consumes them | Done in module | — | cantica-tech/catalyst:docs/decisions.md B9 |
 
@@ -221,8 +236,10 @@ These are **Now** items.
 
 | Item | Status | Horizon | Source |
 |---|---|---|---|
-| Mark `docs/engine-and-onboarding.md` §6 as resolved | Stale | Later | that file |
-| Add CI and `.standards/` | Open | Next | — |
+| ~~Mark `docs/engine-and-onboarding.md` §6 as resolved~~ | Done 2026-10-31 (the design records what was decided) | — | that file |
+| ~~Add CI and `.standards/`~~ | Done 2026-10-31 (Standards, Install) | — | .github/workflows |
+| ~~A development branch~~ | Done 2026-11-01: `development` is the default, `main` takes it by PR | — | branches |
+| ~~Remove the committed release zips~~ | Done 2026-11-01 (the old `cantica-knowledge-base` 0.1.0 too; `catalyst/` ignored) | — | commits `4013032`, `b16c780` |
 | Be a real pilot (R7) | In progress | 1.0 | cantica-tech/catalyst:docs/roadmap.md R7 |
 
 ## 5. catalyst-ui — cantica-tech/catalyst-ui
@@ -231,9 +248,12 @@ These are **Now** items.
 
 | Item | Status | Source |
 |---|---|---|
-| Fix the stale README (Electron host "experimental, not released", ".criterion working copy") and desktop.md (kernel 0.106.0) | Stale docs | README.md; docs/desktop.md |
-| Align Node: `.nvmrc` says 20, CI runs 24 | Drift | .nvmrc; .github/workflows/ci.yml |
-| Release the desktop kernel bump to 0.119.2 (`1ec35eb`) in the next UI release, with `task release:vsix:publish` as part of it | Committed on development | git log; Taskfile.yml |
+| ~~Fix the stale README and desktop.md~~ | Done 2026-10-31 | README.md; docs/desktop.md |
+| ~~Align Node: `.nvmrc` says 20, CI runs 24~~ | Done in 0.70.0 (Node 24 everywhere) | .nvmrc |
+| ~~Release the desktop kernel bump with `task release:vsix:publish` as part of it~~ | Done: 0.70.0 (kernel 0.120.0), 0.71.0 (kernel 0.121.0), 0.72.0, 0.73.0, each `.vsix` in the distribution repository the same day; `task release:checklist` lists the steps | Taskfile.yml |
+| Re-sync `.standards/` to v0.1.2 (the copy says v0.1.1) | Open | .standards/VERSION |
+| The VS Code Marketplace stopped at 0.66.0 (0.69.0 was refused as "already exists"); publishing is the owner's call | Owner decision | Taskfile.yml |
+| Keep or rename the command `catalyst.configureCriterion`, titled "Set Criterion Repo…" since 0.72.0 | Owner decision | packages/catalyst-host-vscode/package.json |
 
 ### 5.2 Next
 
@@ -281,20 +301,22 @@ flowchart LR
 
 | Item | Status | Horizon | Source |
 |---|---|---|---|
-| Adopt the standards workflow, `.standards/` checks and pyright in CI | Open (CI runs ruff and pytest; ruff is `>=0.7`, locked at 0.17.2) | Next | .github/workflows/ci.yml; pyproject.toml |
-| Stage two: integrate the stdlib core into catalyst's single-file CLI | Partly done (vendored via `scripts/vendor_identity.py`) | Next | README.md |
+| ~~Adopt the standards workflow, `.standards/` checks and pyright in CI~~ | Done in 0.11.0 (ruff pinned at 0.16.10) | — | .github/workflows/standards.yml |
+| The password command on Windows: a POSIX-style split loses an unquoted interpreter path's backslashes | Open (a bug to file and fix) | Now | the fix round of 2026-10-31 |
+| Stage two: integrate the stdlib core into catalyst's single-file CLI | Done: vendored via `scripts/vendor_identity.py`, at 0.11.0 since kernel 0.120.0, with one login shared by both | — | README.md; cantica-tech/catalyst:CHANGELOG 0.120.0 |
 | Onboarding open points: where the onboarding JSON lives (proposed: nowhere persistent); provider forms beyond Keycloak's schema | Open | Next | docs/onboarding.md |
 | Branch protection for private criteria: on a paid plan or when a second writer joins | Waiting on the organisation's plan | Later | cantica-tech/catalyst:docs/results/2026-10-23-catalyst-users.md |
 | Identity design §11: cryptographic record signatures (gitsign/Sigstore or SSH, key custody); a `local` provider for offline use; re-check UserHarbor at 1.0 and the fastapi-users successor; a Casbin proof of concept | Open questions | Later | docs/development/python-identity-libraries.md |
-| Refresh that doc's §10/§11 headings to the 2026-10-23 decisions | Stale | Later | same |
+| ~~Refresh that doc's §10/§11 headings to the 2026-10-23 decisions~~ | Done in 0.11.0 | — | same |
 
 ## 7. catalyst-mcp — cantica-tech/catalyst-mcp
 
 | Item | Status | Horizon | Source |
 |---|---|---|---|
-| Merge development to main (1 chore commit) | Open | Now | git |
-| Fix the stale lines in docs/design.md (steps 2 and 5) | Stale | Now | docs/design.md |
-| Remove the need for a catalyst checkout | Waits on kernel §2.4 | Next | README.md |
+| ~~Merge development to main~~ | Done 2026-10-31 (0.4.1) | — | git |
+| ~~Fix the stale lines in docs/design.md (steps 2 and 5)~~ | Done in 0.4.1 | — | docs/design.md |
+| Move to catalyst-users 0.11.0 (it pins 0.10.0 since 0.4.1) | Open | Now | pyproject.toml |
+| Remove the need for a catalyst checkout | The kernel side is done (0.120.0: `init` from the launcher); drop `CATALYST_MCP_CATALYST_ROOT` | Next | README.md |
 | Lift read-only over HTTP | Waits on kernel signing for HTTP callers | Later | docs/design.md |
 | Knowledge-base server ("to be detailed"): signed change entries carrying iss/sub, one server per realm with spaces and group-based access, a service reading served journals (`GET journal?since=`), optional JWS detached signatures | Design only | Later | docs/design.md |
 | Criterion schema beyond v1 (`naming.max_length`, `branches`) | Later | Later | docs/design.md |
@@ -306,7 +328,9 @@ flowchart LR
 | Merge development to main | Done 2026-10-31 (PR #16, release 0.16.1) | — | git |
 | **The 7 search misses** (recall 0.865@10): better rule titles in the words people ask with, or a synonym glossary; a larger expansion model is untried | Open; content work, not engine work | Next | cantica-tech/catalyst:docs/results/2026-10-30-search-query-expansion.md |
 | Live check of `serve` with the API client's secret: a realm token is answered and a foreign token refused | Open | Now | cantica-tech/catalyst:docs/results/2026-10-26-catalyst-docs-phase-6.md |
-| Speed up full reads (about 2.5 min) | Idea, needs a kernel batch read | Later | docs/catalyst-docs-progress.md |
+| Speed up full reads (about 2.5 min) | The kernel's batch `view` exists (0.120.0); the engine is to use it | Next | docs/catalyst-docs-progress.md |
+| Move to catalyst-users 0.11.0 (it pins 0.10.0 since 0.16.1) | Open | Now | pyproject.toml |
+| The integration test needs `--identity-issuer` | Open | Next | the fix round of 2026-11-01 |
 | Align ruff with the standard | Done 2026-10-31: `ruff==0.16.10` pinned and run by CI (0.16.1) | — | pyproject.toml |
 | `serve` takes `localhost` and `127.0.0.1` as one loopback host | Done 2026-10-31 (0.16.1) | — | README |
 
@@ -344,19 +368,22 @@ What a switch costs:
 
 | Item | Status | Horizon | Source |
 |---|---|---|---|
-| Merge development to main (README chore) | Open | Now | git |
+| ~~Merge development to main (README chore)~~ | Done 2026-10-31 (#8–#10) | — | git |
 | **Automate `record-site`**, e.g. a scheduled local job after the daily Pages run | Open | Next | cantica-tech/catalyst:docs/results/2026-10-30-catalyst-docs-public-build-recorded.md |
-| Bump `pages.yml` to engine 0.16.0 (check locally that pages are identical); SHA-pin the actions; drop the explicit `OLLAMA_BASE_URL` | Open | Next | .github/workflows/pages.yml |
-| Re-verify guide pages 06–07 ("designed, not yet built") | Open | Later | docs/guide/ |
+| ~~Bump `pages.yml` to engine 0.16.0; SHA-pin the actions~~ | Done 2026-10-31: engine 0.16.1 (site checked identical), every action by SHA, uv and MkDocs pinned | — | .github/workflows/pages.yml |
+| ~~Lint CI~~ | Done 2026-10-31: the standards workflow (Markdown, YAML, workflows) | — | .github/workflows/standards.yml |
+| ~~Re-verify guide pages 06–07~~ | Done 2026-10-31 | — | docs/guide/ |
+| ~~Refresh this manual for kernels 0.120.0–0.121.0, SE 3.6.0, catalyst UI 0.73.0~~ | Done 2026-11-01 (this edition) | — | docs/guide/manual/ |
 | Reference fixtures: a source's import should name what it draws on, or repos opt fixtures out (the UI did, via `.catalystignore`) | Partly done | Later | cantica-tech/catalyst:docs/results/2026-10-26-catalyst-docs-phase-6.md |
 
 ## 10. Distribution repo and release infrastructure
 
 | Item | Status | Horizon | Source |
 |---|---|---|---|
-| Make `task release:vsix:publish` part of every UI release | Process fix | Now | cantica-tech/catalyst-ui:Taskfile.yml |
+| ~~Make `task release:vsix:publish` part of every UI release~~ | Done: step 5 of `task release:checklist` (catalyst UI 0.71.0) | — | cantica-tech/catalyst-ui:Taskfile.yml |
+| ~~Module releases leave the module repositories~~ | Done in kernel 0.121.0: the distribution repository is their only home | — | cantica-tech/catalyst:CHANGELOG 0.121.0 |
 | Refresh `catalyst/example/` (tempconv) to the `catalyst.toml`-only model and current `init` flags | Stale | Later | cantica-tech/cantica-tech:catalyst/example |
-| Repo growth (`.git` about 101 MB): move binaries to release assets? | Open question | Later | repo |
+| Repo growth (`.git` about 106 MB): move binaries to release assets? | Open question | Later | repo |
 | Signed releases and an org-owned feed (shared with kernel R7) | Open | 1.0 | cantica-tech/catalyst:docs/roadmap.md R7 |
 | Whether catalyst-users, catalyst-mcp and catalyst-kb-engine are distributed here | Open question | Later | repo |
 
@@ -398,11 +425,12 @@ The phases and what each waits on:
 
 ```mermaid
 flowchart TD
-    A1["A1 Merge chore-only branches"] --> A2["A2 Fix drift: standards, Node, ruff, stale docs"]
-    A2 --> B3["B3 Next UI release with the vsix published"]
+    A1["A1 Merge chore-only branches (done)"] --> A2["A2 Fix drift (done, except UI and SE .standards)"]
+    A2 --> B3["B3 UI releases with the vsix published (done, 0.70 to 0.73)"]
+    A2 --> A0["A0 Next kernel round: identity status, SYNCHRONIZE.md,<br/>fw-PLUGINS, flaky test, one create per type"]
+    A2 --> U0["U0 catalyst-users 0.11.0 in catalyst-mcp and kb-engine"]
     A2 --> C4["C4 check --json, --json on writes, upgrade dry run"]
     C4 --> C5["C5 agent run log, coverage counts"]
-    C4 --> C6["C6 init from an installed runtime"]
     C4 --> C7["C7 Table rows as entities"]
     C7 --> D8["D8 Designs 31, 30, 32 phase 5"]
     D8 --> D9["D9 Design 33 phases 3 and 4, a real landing"]
@@ -415,22 +443,22 @@ flowchart TD
     E13["E13 Release feed and signing"] --> E14
 ```
 
-**Phase A — hygiene.** No design work.
+**Phase A — hygiene.** No design work. Done on 2026-10-31 and 2026-11-01, except where said.
 
-1. Merge the chore-only development branches into main (catalyst-mcp, kb-engine, catalyst-docs).
-2. Fix the drift:
-   - `.standards` v0.1.2, Node 20/24, ruff pins in catalyst-users and kb-engine;
-   - stale docs: `docs/adr` statuses, PARKING.md, the R6 stale row, the UI README and desktop.md, the catalyst-mcp design steps, KBM's §6.
+1. ~~Merge the chore-only development branches into main (catalyst-mcp, kb-engine, catalyst-docs).~~ Done.
+2. ~~Fix the drift~~ — done: `.standards` v0.1.2 in catalyst, Node 24, ruff pins, `docs/adr` statuses, PARKING.md, the R6 row, the UI README and desktop.md, the catalyst-mcp design steps, KBM's §6. Left: `.standards` in catalyst-ui and SE.
+3. **The next kernel round** (§2.6): `identity status` agreeing with `whoami`, `SYNCHRONIZE.md` journaled by the release steps, the `fw-PLUGINS` rules retired, the flaky test, one create command per type.
+4. **catalyst-users 0.11.0** in catalyst-mcp and catalyst-kb-engine; the Windows password command in catalyst-users.
 
 **Phase B — the next UI release.**
 
-- **3.** Release the next UI version (desktop kernel 0.119.2) with `release:vsix:publish` as part of the release.
+- ~~Release the next UI version with `release:vsix:publish` as part of the release.~~ Done four times (0.70.0–0.73.0); `task release:checklist` keeps it so.
 
 **Phase C — engine items owed to the UI.** One kernel release each.
 
 - **4.** `check --json` with the entity, then `--json` on the write verbs and on `analysis`/`module`, then a `module upgrade` dry run.
 - **5.** A run log kept by `agent run`; coverage counts.
-- **6.** `init` from an installed runtime, which unblocks catalyst-mcp.
+- ~~**6.** `init` from an installed runtime, which unblocks catalyst-mcp.~~ Done in 0.120.0.
 - **7.** Table rows: links from `Linked`, then `edit` and `history` on rows.
 
 **Phase D — finish the decided designs.**
@@ -441,7 +469,7 @@ flowchart TD
 
 **Phase E — 1.0 readiness.** In parallel; gated on people and keys.
 
-- **11.** Refresh `beta/` for the post-R3 verbs. Start the **multi-user trial**: the owner plus at least one human, 4 weeks. Measure the newcomer's first traced change with an outside newcomer.
+- **11.** ~~Refresh `beta/` for the post-R3 verbs~~ (done in 0.120.0). Start the **multi-user trial**: the owner plus at least one human, 4 weeks. Measure the newcomer's first traced change with an outside newcomer.
 - **12.** Copilot and Gemini CLI `agent run` adapters (B2).
 - **13.** The release feed plus signing: kernel and modules (R7, R4.9 N4), desktop signing and auto-update.
 - **14.** After a clean trial: **declare format 1.0**. That flips the manual-change detection and legacy pointers to errors. Then tag 1.0.
@@ -449,7 +477,8 @@ flowchart TD
 **Ongoing.** These run alongside every phase:
 
 - search-quality content work (the 7 misses);
-- automate `record-site`; bump `pages.yml` to engine 0.16.0;
-- CI for KBM and catalyst-docs;
+- automate `record-site`; ~~bump `pages.yml` to engine 0.16.0~~ (0.16.1, done);
+- ~~CI for KBM and catalyst-docs~~ (done);
 - the brand chain, once counsel is chosen;
-- the SE repo cleanup.
+- ~~the SE repo cleanup~~ (done in 3.5.0);
+- the Marketplace, if the owner decides to publish (it stopped at 0.66.0).

@@ -5,8 +5,16 @@ classification: Public
 
 This manual is the technical companion of the guide. The guide explains what catalyst is; this manual is for the
 engineer who installs, operates and releases every part of it from nothing. It describes the fleet as it stands on
-2026-10-31: kernel **0.119.2**, software-engineering module **3.4.1**, knowledge-base module **0.6.1**, catalyst-users
-**0.10.0**, catalyst-kb-engine **0.16.0**, Catalyst Studio (catalyst-ui) **0.69.0**.
+2026-11-01: kernel **0.121.0**, software-engineering module **3.6.0**, knowledge-base module **0.6.1**, catalyst-users
+**0.11.0**, catalyst-mcp **0.4.1**, catalyst-kb-engine **0.16.1**, Catalyst Studio (catalyst-ui) **0.73.0**.
+
+What changed since the 2026-10-31 edition, in one place: kernel 0.120.0 re-vendors the identity core from
+catalyst-users 0.11.0 (`identity login --password`, one `identity.json` shape, one login shared with catalyst-users)
+and fixes ten CLI defects (BUG-000047…056); kernel 0.121.0 gives "no deployment" its own exit code **4**, adds
+`id next --peek` and publishes module releases only to the distribution repository; SE 3.5.0 and 3.6.0 drop the
+module's Taskfile and committed zips and derive a roadmap row's Done; KBM moved to `development` → `main`; Catalyst
+Studio 0.70.0–0.73.0 runs on Node 24 and gained the Users panel's log-in button, Search Items and Close/Reopen Bug.
+Each chapter says where.
 
 Every chapter cites its sources as `cantica-tech/<repository>:<path>`, so a statement can be checked against the code.
 Where a chapter says "not verified", the behaviour was read from the code but not run.
@@ -26,14 +34,14 @@ Where a chapter says "not verified", the behaviour was read from the code but no
 |---|---|---|---|---|
 | `cantica-tech/catalyst` | The kernel: the `catalyst` CLI (`dist/catalyst.pyz`), the framework texts (`framework/kernel/`), the agent adapters (`agents/`), the MCP server (`catalyst mcp`) | Python ≥ 3.11 | `development` → `main` → `release`; tags `X.Y.Z` (older ones `vX.Y.Z`) | yes, module SE |
 | `cantica-tech/catalyst-software-engineering` | Process module **SE**: requirements, steps, bugs, features, tests, decisions, roadmap | Markdown + YAML (+ UI `.tsx`) | `development` → `main`; tags on `main` | no |
-| `cantica-tech/catalyst-knowledge-base` | Process module **KBM**: knowledge bases, sources, builds, classification | Markdown + YAML | `main` only; tags on `main` | yes, module SE |
+| `cantica-tech/catalyst-knowledge-base` | Process module **KBM**: knowledge bases, sources, builds, classification | Markdown + YAML | `development` (default) → `main`; tags on `main` | yes, module SE |
 | `cantica-tech/catalyst-users` | CLI facade to an identity provider (Keycloak built in), the system account, roles and groups; the local Keycloak (`compose.yaml`) | Python | `development` → `main`; tags | yes, SE + KBM |
 | `cantica-tech/catalyst-mcp` | MCP server over the catalyst CLI and catalyst-users; deny-by-default, one group per criterion | Python | `development` → `main` | yes, SE |
 | `cantica-tech/catalyst-kb-engine` | The knowledge-base build engine (Pydantic AI): reads sources, builds folders and vector builds (`kbm-build/1`), search, MCP search, site generation | Python | `development` → `main`; tags | yes, SE |
 | `cantica-tech/catalyst-docs` | catalyst's documentation as a knowledge base: the guide, this manual, the public site on GitHub Pages and its vector database | Markdown, MkDocs | `development` → `main` | yes, KBM |
-| `cantica-tech/catalyst-ui` | **Catalyst Studio**: VS Code extension, desktop app (Electron), the Studio SPA, the core runtime | TypeScript, Node ≥ 20 | `development` → `main` → `release`; tags `X.Y.Z` | yes, SE |
+| `cantica-tech/catalyst-ui` | **Catalyst Studio**: VS Code extension, desktop app (Electron), the Studio SPA, the core runtime | TypeScript, Node ≥ 24 | `development` → `main` → `release`; tags `X.Y.Z` | yes, SE |
 | `cantica-tech/standards` | Shared code standards and the shared lint workflow (pinned ruff, eslint) | — | tags | — |
-| `cantica-tech/cantica-tech` | The distribution repository: released kernel zips and `catalyst.pyz` (`catalyst/kernel/v<ver>/`), module zips (`catalyst/modules/`), VS Code `.vsix` (`catalyst/vsix/`) | — | `main` | — |
+| `cantica-tech/cantica-tech` | The distribution repository: released kernel zips and `catalyst.pyz` (`catalyst/kernel/v<ver>/`), module zips (`catalyst/modules/`, the only place a module release lives since kernel 0.121.0), VS Code `.vsix` (`catalyst/vsix/`) | — | `main` | — |
 
 Each governed project's **criterion** — its rules, artifacts and journal — lives outside the project, at
 `$HOME/.catalyst/projects/<name>/criterion`, and is shared through its own private git repository, on the branch
@@ -69,13 +77,13 @@ flowchart TB
   end
 
   subgraph Kernel["catalyst kernel"]
-    CLI["catalyst.pyz<br/>identity core embedded 0.7.0"]
+    CLI["catalyst.pyz<br/>identity core vendored from catalyst-users 0.11.0"]
   end
 
   MCPS["catalyst-mcp<br/>tools, gate by role and group"]
 
   subgraph Modules["Modules composed into each criterion"]
-    SE["SE module 3.4.1"]
+    SE["SE module 3.6.0"]
     KBM["KBM module 0.6.1"]
   end
 
@@ -186,7 +194,7 @@ flowchart TD
 | go-task (`task`) | 3.x | the repositories' `Taskfile.yml` |
 | gh | logged in, `cantica-tech` access | private criterion repositories, pull requests, branch protection |
 | Docker or Podman | with compose | the local Keycloak |
-| Node.js | ≥ 20 (CI uses 24) | catalyst-ui |
+| Node.js | ≥ 24 (`.nvmrc`, `engines`, CI) | catalyst-ui |
 | VS Code | ≥ 1.85, `code` on PATH | the extension |
 | Ollama | with `nomic-embed-text` | vector builds and search |
 | Claude Code | `claude` on PATH | the agent catalyst wires itself into |
@@ -199,9 +207,11 @@ Achieves: every later command can run. Verify with `git --version`, `python3 --v
 
 1. Clone `cantica-tech/catalyst-users`; `docker compose up -d` starts Keycloak 26.4.0 on `127.0.0.1:8080` and imports
    the realm `catalyst` (clients, roles, groups) from `keycloak/`. Its data lands in `.keycloack/data` (sic).
-2. Create the realm's first administrator (`keycloak/set_admin.py` on macOS, `kcadm.sh` elsewhere).
+2. Create the realm's first administrator (`keycloak/set_admin.py` on macOS, `kcadm.sh` elsewhere). Since
+   catalyst-users 0.11.0 `set_admin.py` keeps the other members of `/catalyst-admins`; `--sole-admin` removes them.
 3. `catalyst-users setup --criterion <project>` writes `$HOME/.catalyst/users/IAM/settings.json`, which defines the
-   machine's **system account** — the identity unattended work signs as.
+   machine's **system account** — the identity unattended work signs as. Since 0.11.0, `setup` exits `1` when the
+   provider is unreachable (the settings are still written, unchecked); run `setup --force` once it is up.
 4. `catalyst-users login`, then `catalyst-users roles provision keycloak/catalyst-roles.json --login-client catalyst-cli
    --login-client catalyst-admin-cli` creates the roles that grant catalyst commands.
 
@@ -227,20 +237,24 @@ sequenceDiagram
 ```
 
 Achieves: catalyst can verify who signs. Verify: `curl -s http://localhost:8080/realms/catalyst/.well-known/openid-configuration`
-answers; `catalyst-users whoami` names you.
+answers; `catalyst-users whoami` names you. The dev realm keeps a login 12 hours idle and 7 days at most
+(`keycloak/realm-catalyst.json`); since kernel 0.120.0 that one login also serves `catalyst` when both name the same
+provider, and `localhost`, `127.0.0.1` and `::1` name one provider.
 
 ### Step 3 — The kernel ([20 §3–§5](20-deploy-kernel.md))
 
-Either take a release from `cantica-tech/cantica-tech` (`catalyst/kernel/v0.119.2/`: `kernel-v0.119.2.zip` and
+Either take a release from `cantica-tech/cantica-tech` (`catalyst/kernel/v0.121.0/`: `kernel-v0.121.0.zip` and
 `catalyst.pyz`), or clone `cantica-tech/catalyst` at the tag and `task build:cli` to make `dist/catalyst.pyz`.
 The first `init` (or `catalyst runtime install`) creates the launcher `$HOME/.catalyst/bin/catalyst`, which runs each
-project's own criterion runtime; put `$HOME/.catalyst/bin` on PATH.
+project's own criterion runtime; put `$HOME/.catalyst/bin` on PATH. Since 0.120.0 every `catalyst.pyz` carries its
+`framework/kernel`, so `init` also runs from the installed launcher with no checkout and no `--kernel`, and
+`catalyst runtime prune` removes the runtimes no criterion uses.
 
 The two ways to obtain the kernel converge on the same launcher:
 
 ```mermaid
 flowchart LR
-  Rel["release from cantica-tech/cantica-tech<br/>catalyst/kernel/v0.119.2/"] --> Pyz["catalyst.pyz"]
+  Rel["release from cantica-tech/cantica-tech<br/>catalyst/kernel/v0.121.0/"] --> Pyz["catalyst.pyz"]
   Src["clone cantica-tech/catalyst at the tag"] -- "task build:cli" --> Dist["dist/catalyst.pyz"]
   Pyz --> First["first init or catalyst runtime install"]
   Dist --> First
@@ -274,7 +288,9 @@ Get SE and, if wanted, KBM: a sibling checkout named `catalyst-<id>` at its tag,
 
 ### Step 6 — Put a project under catalyst ([20 §7–§9](20-deploy-kernel.md), [30 §3](30-cli-catalyst.md))
 
-From the project's root, logged in (`catalyst identity login`) or with the system account available:
+From the project's root, logged in (`catalyst identity login`, or `catalyst identity login --password` without a
+browser) or with the system account available (`--kernel` may be left out since 0.120.0: the launcher's bundled kernel
+is used):
 
 ```sh
 catalyst init --kernel <kernel zip or framework/kernel> --name <name> --module software-engineering \
@@ -309,7 +325,8 @@ sequenceDiagram
 
 Create an empty **private** repository (by convention `<project>-criterion`), then
 `catalyst share create <url> --protect`: it prints its plan and exits **3** (asking); re-run with `--yes` once the owner
-agrees. It pushes the branch `criterion`, protects it where the plan allows, and stages `repoed`, the URL and the branch
+agrees. Since 0.120.0 the entries it writes are signed by the verified identity, and `criterion protect` and
+`hook install` ask the same way. It pushes the branch `criterion`, protects it where the plan allows, and stages `repoed`, the URL and the branch
 in `catalyst.toml` — commit that too.
 
 The exit-3 assent gate decides whether anything leaves the machine:
@@ -353,7 +370,8 @@ sequenceDiagram
 
 Install the `.vsix` from `cantica-tech/cantica-tech:catalyst/vsix/` or the Marketplace, or build it:
 `npm ci`, `npm run typecheck`, `npm run build -w catalyst-studio`, `task build:vscode-extension`,
-`task install:vscode-extension`. Set `catalyst.iam.command` to the catalyst-users command for the Users panel.
+`task install:vscode-extension`. Set `catalyst.iam.command` to the catalyst-users command for the Users panel. The
+Marketplace stopped at 0.66.0; current versions (0.73.0) are in the distribution repository.
 
 The three ways to get the extension:
 
@@ -387,7 +405,7 @@ flowchart TD
 ### Step 11 — The knowledge-base stack ([60 §7](60-knowledge-base-stack.md))
 
 `ollama pull nomic-embed-text`; install the engine from its tag
-(`uv tool install "catalyst-kb-engine[vectors,openai,search,mcp,serve] @ git+https://github.com/cantica-tech/catalyst-kb-engine@0.16.0"`
+(`uv tool install "catalyst-kb-engine[vectors,openai,search,mcp,serve] @ git+https://github.com/cantica-tech/catalyst-kb-engine@0.16.1"`
 — it is not on PyPI); onboard a knowledge base with KBM's `/kb-setup`; `read-sources`, `build-folders`,
 `build-vectors`, `search`. For catalyst-docs: Pages deploys from GitHub Actions on each push to `main` and daily; then
 `catalyst-kb-engine record-site https://cantica-tech.github.io/catalyst-docs/` records what it serves.
@@ -396,7 +414,7 @@ The knowledge-base pipeline, from onboarding to the published site:
 
 ```mermaid
 flowchart LR
-  Pull["ollama pull nomic-embed-text"] --> Inst["uv tool install catalyst-kb-engine@0.16.0"]
+  Pull["ollama pull nomic-embed-text"] --> Inst["uv tool install catalyst-kb-engine@0.16.1"]
   Inst --> Setup["KBM /kb-setup"]
   Setup --> Read["read-sources"]
   Read --> Folders["build-folders"]
@@ -411,7 +429,8 @@ flowchart LR
 ### Step 12 — Verify the whole
 
 In every project: `catalyst where`, `catalyst open`, `catalyst check`, `catalyst journal verify`,
-`catalyst unrecorded`, `catalyst module verify`. In the Studio: the Instances view lists each project. For the
+`catalyst unrecorded`, `catalyst module verify`. Outside a project the commands that need a deployment exit **4**
+since 0.121.0 (`check` and the hooks still exit `0`); `2` is a usage error only. In the Studio: the Instances view lists each project. For the
 knowledge base: `catalyst-kb-engine search --build <dir> "<question>"` answers with cited passages.
 
 ## 4. Releasing: the order of a fleet release
@@ -437,7 +456,8 @@ gitGraph
   commit id: "next work"
 ```
 
-The modules have no `release` branch: they tag on `main` (KBM has `main` only; SE integrates from `development`):
+The modules have no `release` branch: they tag on `main`, integrated from `development` (KBM too, since
+2026-11-01):
 
 ```mermaid
 gitGraph
@@ -453,8 +473,11 @@ gitGraph
    the tag (the publish script refuses any other checkout) to `cantica-tech/cantica-tech:catalyst/kernel/v<ver>/`.
    Before pushing: ruff check and format `--check`, repo-wide, `--no-cache`, at CI's pinned version; the kernel purity
    scan (`scripts/check_kernel_purity.py`), which also reads `CHANGELOG.md` — name no module and no product there.
-2. **Modules**: tag on `main`; `scripts/package_release.py --publish-dir <cantica-tech checkout> --push` packages each
-   catalogued module's working tree, so check out the tag first.
+2. **Modules**: tag on `main`; the kernel's `scripts/package_release.py --publish-dir <cantica-tech checkout> --push`
+   (`--module <id>`, `--no-kernel` for a module alone) packages a module only from a checkout at its version's tag
+   (else `--unreleased`) and writes only into the distribution repository: no zip is committed to a module
+   repository since kernel 0.121.0 (SE 3.5.0 and KBM removed theirs). A release manifest's `entry` names the module's
+   UI bundle only when the release ships one.
 3. **Deployments**: in each governed project, `catalyst sync plan`, `catalyst sync apply --kernel <new zip>`,
    `catalyst migrate`, then `catalyst check`, `journal verify`; share through a PR on the criterion. On a shared
    criterion the kernel goes in before a module that needs it.
@@ -462,7 +485,7 @@ gitGraph
    <catalyst checkout> <ver>`; a test fails while the two disagree), a **clean** build (remove `dist/` and
    `*.tsbuildinfo` — local checks can pass on stale build info), PRs to `main` and `release`, a GitHub release tagged
    `X.Y.Z` (the Desktop workflow attaches the installers), `task release:vsix:publish PUBLISH_DIR=<cantica-tech
-   checkout>`; the Marketplace only when the owner asks.
+   checkout>`; the Marketplace only when the owner asks. `task release:checklist` prints these steps in order.
 5. **catalyst-docs**: bump the engine pin in `.github/workflows/pages.yml` when the engine changes; `record-site` after
    each deployment.
 
@@ -479,7 +502,7 @@ flowchart TD
   end
   subgraph M["2. Modules"]
     MTag["tag on main, check out the tag"]
-    MPkg["package_release.py --publish-dir --push"]
+    MPkg["package_release.py --publish-dir --push<br/>from the tag, to the distribution repository only"]
     MTag --> MPkg
   end
   subgraph D["3. Deployments"]
@@ -493,7 +516,7 @@ flowchart TD
     SClean["clean build: remove dist/ and *.tsbuildinfo"]
     SPR["PRs to main and release"]
     SRel["GitHub release X.Y.Z<br/>Desktop workflow attaches installers"]
-    SVsix["task release:vsix:publish"]
+    SVsix["task release:vsix:publish<br/>(task release:checklist lists the steps)"]
     SSpec --> SClean --> SPR --> SRel --> SVsix
   end
   subgraph C["5. catalyst-docs"]
@@ -513,7 +536,9 @@ flowchart TD
 | Join a criterion on another machine | [20 §11](20-deploy-kernel.md) |
 | Upgrade a deployment to a new kernel or module | [20](20-deploy-kernel.md), [40 §6](40-modules.md) |
 | Adopt changes made outside catalyst | [30 §7](30-cli-catalyst.md) (`journal adopt`) |
-| Understand why a command exited 3 | [30 §2](30-cli-catalyst.md) |
+| Understand why a command exited 2, 3 or 4 | [30 §2.3](30-cli-catalyst.md) |
+| Remove runtimes no criterion uses | [30 §3.4](30-cli-catalyst.md) (`runtime prune`) |
+| Log in without a browser | [50 §4.4](50-identity-users-mcp.md) (`identity login --password`) |
 | Run a feature end to end (FEAT → REQ → STEP → close) | [40 §3](40-modules.md) |
 | Add a person, grant a role on a criterion | [50 §10](50-identity-users-mcp.md) |
 | Recover when Keycloak is down | [50 §11](50-identity-users-mcp.md) |

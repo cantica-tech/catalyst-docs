@@ -7,8 +7,10 @@ Hand-off chapter for an engineer installing and operating the catalyst fleet's i
 identity provider (a local Keycloak), the `catalyst-users` facade and CLI, how the catalyst kernel signs through it,
 and the `catalyst-mcp` MCP server that orchestrates both.
 
-State described: `cantica-tech/catalyst-users` **0.10.0** (2026-10-30), `cantica-tech/catalyst-mcp` **0.4.0**
-(2026-10-30), catalyst kernel **0.119.2**, Keycloak image `quay.io/keycloak/keycloak:26.4.0`. Every claim cites its
+State described: `cantica-tech/catalyst-users` **0.11.0** (2026-10-31), `cantica-tech/catalyst-mcp` **0.4.1**
+(2026-10-31), catalyst kernel **0.121.0** (identity core re-vendored from catalyst-users 0.11.0 in 0.120.0), Keycloak
+image `quay.io/keycloak/keycloak:26.4.0`. Refreshed on 2026-11-01 from the repositories' `CHANGELOG.md`; the
+password login and the shared login were not verified live against Keycloak. Every claim cites its
 source as `cantica-tech/<repo>:path`. Secrets are never quoted: the text says where each one is configured.
 
 ## Contents
@@ -53,9 +55,9 @@ flowchart TB
   end
   CORE -- "OIDC: device and password grants, userinfo,<br/>refresh, revoke, introspection; admin REST<br/>with the caller's own token" --> KC
   UCLI --> CORE
-  CORE -. "vendored copy (0.7.0)" .-> KER
+  CORE -. "vendored copy (0.11.0)" .-> KER
   KER -- "OIDC" --> KC
-  MCPS -- "library (pinned 0.8.0)" --> CORE
+  MCPS -- "library (pinned 0.10.0)" --> CORE
   MCPS -- "subprocess: catalyst init, journal adopt,<br/>members add, ..." --> KER
   UCLI --- F1
   KER --- F2
@@ -67,19 +69,22 @@ flowchart TB
   "Where things live").
 - **The kernel does not shell out to the `catalyst-users` CLI.** It carries a vendored copy of catalyst-users' core
   under `scripts/catalyst/identity/` (`cantica-tech/catalyst:scripts/catalyst/identity/VERSION` names release
-  **0.7.0** with a sha256 per file; `scripts/vendor_identity.py` refreshes it; `tests/test_catalyst_identity_vendored.py`
-  checks the hashes). It reads the **same** settings file the CLI writes.
+  **0.11.0** since kernel 0.120.0, with a sha256 per file; `scripts/vendor_identity.py` refreshes it; `tests/test_catalyst_identity_vendored.py`
+  checks the hashes). It reads the **same** settings file the CLI writes and, since 0.120.0, the same credentials
+  file when both name the same provider (§4.3).
 - **catalyst-mcp** imports catalyst-users as a Python dependency (`pyproject.toml`: `catalyst-users @
-  git+https://github.com/cantica-tech/catalyst-users@0.8.0`) and runs the `catalyst` CLI as a subprocess.
+  git+https://github.com/cantica-tech/catalyst-users@0.10.0` since catalyst-mcp 0.4.1; the move to 0.11.0 is pending)
+  and runs the `catalyst` CLI as a subprocess.
 - Every catalyst deployment of the fleet signs through the same realm, `http://localhost:8080/realms/catalyst`,
-  named in its criterion's `IAM/identity.json`, which comes in **two shapes**:
-  `{"provider","issuer"}` (written by `catalyst identity configure`) or `{"provider","url","realm","client",
-  "password_client","catalyst_client"}` (copied from catalyst-users' settings by a `catalyst init` without
-  `--identity-issuer`). Both are valid; see gotcha 21 for the consequence.
+  named in its criterion's `IAM/identity.json`. Since kernel 0.120.0 it has **one shape**, `{"provider","issuer"}`
+  (BUG-000057): a pointer still in the older `{"provider","url","realm",…}` shape (copied from catalyst-users' settings
+  by a `catalyst init` without `--identity-issuer`) is read as its issuer, `catalyst check` warns of it, and
+  `catalyst migrate --apply` rewrites it (migration 0.120.0). Three fleet deployments had their pointer rewritten
+  this way on 2026-10-31. See gotcha 21.
 - All three repos involved are themselves catalyst-governed: `catalyst.toml` in `cantica-tech/catalyst-users`
   (`project_name = "catalyst-users"`, its criterion in a private criterion repository, branch `criterion`,
   rule prefixes `env-…`, `id-…`) and `cantica-tech/catalyst-mcp` (`project_name = "catalyst-mcp"`, a private
-  criterion repository, rule prefix `mcp-…`). Both at `kernel_version = "0.119.2"`, module
+  criterion repository, rule prefix `mcp-…`). Both at `kernel_version = "0.121.0"`, module
   `software-engineering`, agent `claude-code`.
 
 ---
@@ -132,6 +137,7 @@ Dev realm definition `cantica-tech/catalyst-users:keycloak/realm-catalyst.json`:
 | `passwordPolicy` | `length(12) and notUsername` | every password ≥ 12 chars, ≠ username |
 | `registrationAllowed` / `resetPasswordAllowed` | `false` / `false` | nobody self-registers or self-resets: an admin sets passwords |
 | `accessTokenLifespan` | `300` s | CLI refreshes when < 30 s remain |
+| `ssoSessionIdleTimeout` / `ssoSessionMaxLifespan` | `43200` s / `604800` s | a login lasts 12 hours idle and 7 days at most (since 2026-11-01; they were 30 minutes and 10 hours, so logins lapsed and entries fell back to the system account). The live realm was changed to match |
 | `oauth2DeviceCodeLifespan` / `oauth2DevicePollingInterval` | `600` s / `5` s | device code valid 10 min |
 | `adminPermissionsEnabled` | `true` | Keycloak 26.2+ fine-grained admin permissions v2 (needed for criterion-admins) |
 
@@ -146,7 +152,7 @@ The definition is refused by `setup` if it holds a person (`users`, `federatedUs
 | `catalyst-admin-cli` | public | **password grant only** (`directAccessGrantsEnabled`) | the **system account** sign-in, and `login --password` (0.9.0) | same four |
 | `catalyst-api` | **confidential** (`client-secret`) | none | token **introspection** by services (`catalyst serve --identity-issuer`, catalyst-mcp HTTP, FastAPI apps); also the audience every token must carry | none |
 | `catalyst` | confidential, no flow | none | a container: its **client roles are the grants** (`cmd:<command>`, `cmd:*`, `reconcile:full`, `reconcile:propose`) | none |
-| `catalyst-tests` | public | password grant | DEV ONLY: integration tests | same four |
+| ~~`catalyst-tests`~~ | public | password grant | DEV ONLY: integration tests. Since 0.11.0 it is no longer in the dev realm file: the tests add it from `keycloak/realm-catalyst-tests.json` to the realm they run against when it lacks it (`sync_clients.py --realm-file` reads such a file). The live realm's client was deleted by the owner on 2026-11-01 | same four |
 
 The `catalyst-api` secret is **generated by Keycloak** on import/creation; it is never in the realm file. Read or
 regenerate it in the Keycloak admin console (Clients → `catalyst-api` → Credentials).
@@ -398,8 +404,12 @@ Other environment variables:
 | `KC_BOOTSTRAP_ADMIN_USERNAME`, `KC_BOOTSTRAP_ADMIN_PASSWORD` | read by `keycloak/set_admin.py` and `sync_clients.py` (defaults: compose.yaml's dev values) |
 | `CATALYST_CHECKOUT` | onboarding integration test: catalyst checkout (default `../catalyst`) |
 
-Keycloak builds the issuer from the **host you call**: `localhost` and `127.0.0.1` produce different issuers. Use
-one spelling everywhere (CLI settings, `IAM/identity.json`, services) — see §12.
+Keycloak builds the issuer from the **host you call**: `localhost` and `127.0.0.1` produce different issuers. Since
+0.11.0 catalyst-users matches issuers as one provider when only the loopback spelling differs
+(`config.canonical_issuer`, `config.same_issuer`: `localhost`, `127.0.0.1` and `::1`; BUG-000047, `id-AUTH-000006`) —
+discovery's issuer, an introspected token's `iss` and settings.json's system account — while calls keep the URL they
+were given, since Keycloak refuses a token at a host other than the one that minted it. The kernel does the same since
+0.120.0. One spelling everywhere is still the simplest — see §12.
 
 ### 2.5 Security model
 
@@ -450,15 +460,15 @@ Runnable example: `cantica-tech/catalyst-users:examples/api.py`.
 
 | Script | What it does | Auth used | Notes |
 | --- | --- | --- | --- |
-| `uv run python keycloak/set_admin.py --email you@example.com [--service S] [--server URL] [--first-name] [--last-name]` | reads username (`acct`) and password of macOS keychain item `--service` (its default is a developer-specific item name — always pass `--service`); creates/updates that user in realm `catalyst` (enabled, email verified, password not temporary), makes them the **only** member of `/catalyst-admins` (removes all others) | Keycloak bootstrap admin from `KC_BOOTSTRAP_ADMIN_*` (defaults: compose's dev values), loopback only | **macOS only** (`security`) |
-| `uv run python keycloak/sync_clients.py [--server URL]` | adds clients declared in `realm-catalyst.json` that the running realm lacks, and missing protocol mappers; never changes/deletes; prints no secret | bootstrap admin | needed because `--import-realm` only imports a realm that does not exist yet |
+| `uv run python keycloak/set_admin.py --email you@example.com [--service S] [--server URL] [--first-name] [--last-name]` | reads username (`acct`) and password of macOS keychain item `--service` (its default is a developer-specific item name — always pass `--service`); creates/updates that user in realm `catalyst` (enabled, email verified, password not temporary), adds them to `/catalyst-admins` and lists the other members, keeping them (since 0.11.0); `--sole-admin` removes the others, as it always did before | Keycloak bootstrap admin from `KC_BOOTSTRAP_ADMIN_*` (defaults: compose's dev values), loopback only | **macOS only** (`security`) |
+| `uv run python keycloak/sync_clients.py [--server URL] [--realm-file F]` | adds clients declared in `realm-catalyst.json` that the running realm lacks, and missing protocol mappers; never changes/deletes; prints no secret | bootstrap admin | needed because `--import-realm` only imports a realm that does not exist yet |
 
 ---
 
 ## 3. catalyst-users CLI reference
 
 Source: `cantica-tech/catalyst-users:src/catalyst_users/cli.py`, verified against `catalyst-users --help` output of
-0.10.0.
+0.10.0; 0.11.0's changes are from its `CHANGELOG.md`.
 
 ### 3.1 Invocation, global options, exit codes
 
@@ -469,16 +479,16 @@ catalyst-users [-h] [--version] [--pointer POINTER] [--server SERVER_URL] [--rea
 
 | Option | Meaning |
 | --- | --- |
-| `--version` | prints `catalyst-users 0.10.0` |
+| `--version` | prints `catalyst-users 0.11.0` |
 | `--pointer FILE` | pointer document (JSON) naming the provider and settings |
-| `--server URL` | Keycloak server URL (default `http://localhost:8080`); **explicit → settings.json is ignored** |
+| `--server URL` | Keycloak server URL (default `http://localhost:8080`); explicit → settings.json is ignored, **except** (since 0.11.0) when it names settings.json's own provider: its system account is kept |
 | `--realm NAME` | Keycloak realm (default `catalyst`); same caveat |
 | `--client-id ID` | public login client (default `catalyst-cli`); same caveat |
 | `--json` | machine-readable output (JSON, indent 2) |
 
-**Global options go before the command.** `catalyst-users --json whoami` works; `catalyst-users whoami --json`
-fails with `error: unrecognized arguments: --json`, exit 2 (verified). The README's table shows `whoami [--json]`,
-which is misleading.
+**Global options go before or after the command** (since 0.11.0, BUG-000050): `catalyst-users --json whoami` and
+`catalyst-users whoami --json` both work. Up to 0.10.0 the second failed with
+`error: unrecognized arguments: --json`, exit 2.
 
 Exit codes: **0** done; **1** refused or failed (`catalyst-users: error: <message>` on stderr; also Ctrl-C:
 `catalyst-users: interrupted`); **2** usage error (argparse).
@@ -518,7 +528,7 @@ Behaviour (`providers/keycloak.py: setup`):
 
 | Keycloak state (GET `<url>/realms/<realm>/.well-known/openid-configuration`) | Outcome | What it does |
 | --- | --- | --- |
-| unreachable | `unreachable` | writes settings from the JSON **unchecked**; exits 0 (!) |
+| unreachable | `unreachable` | writes settings from the JSON **unchecked**; exits **1** since 0.11.0 (BUG-000048, `id-PROVIDER-000006`) and says to run `setup --force` once the provider is up — it exited 0 before |
 | 404 (no realm) | `created` | needs `definition`; gets a `master` token as server admin via `admin-cli`, `POST /admin/realms` with the definition, creates the admin user (email verified, password not temporary), adds them to `/catalyst-admins` (or `admin_group`), then signs in |
 | 200 | `authenticated` | signs the admin in (password grant on `password_client`) — **the admin must already exist** |
 | other | error | `Keycloak answered HTTP n …` |
@@ -528,7 +538,7 @@ The same behaviour as a flow:
 ```mermaid
 flowchart TD
   A["catalyst-users setup"] --> D{"GET the realm's discovery document"}
-  D -- "unreachable" --> U["outcome unreachable<br/>settings written unchecked, exit 0"]
+  D -- "unreachable" --> U["outcome unreachable<br/>settings written unchecked, exit 1<br/>(0 before 0.11.0): setup --force later"]
   D -- "404, no realm" --> CR["master token as server admin, POST the definition,<br/>create the admin in /catalyst-admins"]
   D -- "200" --> AU["outcome authenticated<br/>the admin must already exist"]
   D -- "other" --> ER["error: Keycloak answered HTTP n"]
@@ -562,7 +572,7 @@ it)`.
 | `login --password [--username U]` | | password grant on `password_client` (`catalyst-admin-cli`); password from stdin (one line) if not a TTY, else no-echo prompt; username prompted if TTY, required otherwise | same |
 | `logout` | — | revokes at Keycloak (refresh token) via the client that issued it, then deletes `credentials.json` regardless; warning on stderr if revocation not confirmed | `Logged out.` |
 | `whoami` | `--system` | without: userinfo of the logged-in person; with: signs the system account in and reads its userinfo | 7 lines: `user (name)`, `subject`, `issuer`, `groups`, `roles`, `grants`, `administers`; JSON: signer fields + `email, groups, roles, grants, administers` |
-| `token` | `--system` | prints a fresh access token (refreshing if needed); `--system`: password-grant token for the system account | raw token; `--system --json`: `{"access_token","token_type":"Bearer","expires_at"}`. **Secret.** (help text "client credentials" is stale: it is a password grant) |
+| `token` | `--system` | prints a fresh access token (refreshing if needed); `--system`: password-grant token for the system account | raw token; `--system --json`: `{"access_token","token_type":"Bearer","expires_at"}`. **Secret.** (the help names the password grant since 0.11.0; it said "client credentials" before) |
 
 Login failures: `the login was declined`; `the login code expired before it was approved: run \`login\` again`;
 `logged in as X, not Y`; Keycloak refusal `Keycloak refused <u>'s sign-in at <issuer>: invalid_grant: …`.
@@ -641,7 +651,7 @@ All run against the admin API **with your own token** (log in first).
 Sources: `cantica-tech/catalyst:scripts/catalyst/provider.py`, `scripts/catalyst/__main__.py` (`cmd_identity`,
 `_identity_doc`, `cmd_serve`), `scripts/catalyst/ids.py` (`resolve_signer`), `scripts/catalyst/permissions.py`,
 `docs/design/28-identity-providers.md`, `docs/design/29-users-outside-catalyst.md`,
-`docs/design/32-project-membership.md`, `CHANGELOG.md` 0.105.0–0.119.2.
+`docs/design/32-project-membership.md`, `CHANGELOG.md` 0.105.0–0.121.0.
 
 ### 4.1 The pointer: `IAM/identity.json` in the criterion
 
@@ -650,15 +660,16 @@ Sources: `cantica-tech/catalyst:scripts/catalyst/provider.py`, `scripts/catalyst
 ```
 
 Optional keys: `client` (default `catalyst-cli`), `catalyst_client` (default `catalyst`). A workspace member inherits
-its workspace's pointer. `catalyst check` errors if missing (`IAM/identity.json is missing: point the deployment at
+its workspace's pointer. One shape since 0.120.0: the issuer; a `url` + `realm` pointer is read as its issuer, warned
+about by `check` and rewritten by `catalyst migrate --apply`. `catalyst check` errors if missing (`IAM/identity.json is missing: point the deployment at
 catalyst-users (\`catalyst identity configure --issuer <url>\`)`), if not a JSON object, or if
 `pointer_problems()` reports anything; warns if `static`.
 
 Written by:
 
 - `catalyst init` — with `--identity-issuer URL [--identity-client C] [--catalyst-client C]`, from those; **without
-  them, from this machine's `~/.catalyst/users/IAM/settings.json`** (`{"provider": type, **provider}` — connection
-  settings only, never username/password command).
+  them, from this machine's `~/.catalyst/users/IAM/settings.json`**, written as its issuer since 0.120.0 (before, as
+  `{"provider": type, **provider}` — connection settings only, never username/password command).
 - `catalyst identity configure [--provider keycloak|static] --issuer URL [--client C] [--catalyst-client C]
   [--link RETIRED_USER] [--as U] [--intent TEXT]...` — journaled (`artifact: identity pointer`), signed by the
   identity the new pointer authenticates; rolled back if no signer.
@@ -670,11 +681,14 @@ refuse and point to catalyst-users).
 
 `ids.resolve_signer(dep, corpus, as_user, command)` → `provider.signer()` → `provider.verify()`:
 
-1. Build the facade from `IAM/identity.json` with the kernel's own credentials file (§4.3).
+1. Build the facade from `IAM/identity.json` with the credentials file for that provider (§4.3: catalyst-users' own
+   when shared, else the kernel's).
 2. `backend.whoami()` — userinfo with the logged-in person's token (refreshed if needed).
 3. If **not logged in** (`NotLoggedInError`): `system_backend(issuer)` reads `~/.catalyst/users/IAM/settings.json`;
-   if it has `username` + `password_command` **and its issuer equals the pointer's issuer** (string compare after
-   stripping `/`), sign in the system account (password grant) and use it; stderr
+   if it has `username` + `password_command` **and names the same provider as the pointer** (compared by canonical
+   issuer since 0.120.0, BUG-000058: a loopback host is `localhost`, no trailing `/`; before, a string compare after
+   stripping `/`), sign in the system account (password grant), reached at the pointer's spelling
+   (catalyst-users' `system_pointer`), and use it; stderr
    `catalyst: no one is logged in: signing as the system account <user>`. If `--as` names someone other than the
    system account → refused (since kernel 0.117.1). No system account → `no verified identity: not logged in to <issuer>
    (\`catalyst identity login\`)`.
@@ -689,7 +703,8 @@ refuse and point to catalyst-users).
    commands granted by `cmd:<command>` / alias / `cmd:*` / `Admin` role. `catalyst.toml role_check = "warn"` turns a
    refusal into a warning. Refusal text ends with how to grant it in catalyst-users.
 9. **Enrolment**: an identity signing for the first time gets a line appended to the criterion's
-   `IAM/signers.jsonl` — `{"userid","iss","sub","username","name","first_signed"}` — journaled as
+   `IAM/signers.jsonl` — `{"userid","iss","sub","username","name","first_signed"}`, the person matched by canonical
+   issuer and subject since 0.120.0 — journaled as
    `catalyst identity create signer <userid>` (tier `chore`). `userid` is a fresh 8-character ID; every ID the person
    creates afterwards ends with it. The ledger is **append-only** (`catalyst check` reports changed/removed lines
    against the journal history, malformed lines, and a userid naming two identities). A username already taken gets
@@ -699,10 +714,10 @@ Signer resolution with the system-account fallback, as the kernel runs it on eve
 
 ```mermaid
 flowchart TD
-  A["a writing verb, such as catalyst new"] --> B["facade from IAM/identity.json<br/>with the kernel's own token store"]
+  A["a writing verb, such as catalyst new"] --> B["facade from IAM/identity.json<br/>with the provider's token store"]
   B --> W{"whoami with the kernel login"}
   W -- "verified" --> AS
-  W -- "not logged in" --> S{"settings.json has username and password_command<br/>for the same issuer as the pointer?"}
+  W -- "not logged in" --> S{"settings.json has username and password_command<br/>for the same provider (canonical issuer)?"}
   S -- no --> R1["refused: no verified identity, not logged in"]
   S -- yes --> SA["sign the system account in (password grant)<br/>stderr: signing as the system account"]
   SA --> AS{"--as absent or naming the verified identity?"}
@@ -747,29 +762,35 @@ sequenceDiagram
   C->>CR: write the change and its signed journal entry
 ```
 
-### 4.3 Kernel token store (separate from the CLI's)
+### 4.3 Token stores: one login shared with catalyst-users (since 0.120.0)
+
+Since kernel 0.120.0 (REQ-000108) there is **one login** for `catalyst-users login` and `catalyst identity login`
+when this machine's catalyst-users is set up for the deployment's provider — same issuer spelling and same login
+client: catalyst then keeps its tokens in **catalyst-users' credentials file** (`~/.catalyst/users/credentials.json`),
+which holds one login at a time, and a logout from either tool ends both. Otherwise catalyst keeps its own file per
+provider:
 
 | Path | Content |
 | --- | --- |
-| `$CATALYST_HOME/identity/<sha256(issuer\nclient)[:16]>.json` | tokens from `catalyst identity login` (0600 dir 0700) |
-| `$CATALYST_HOME/identity/<same>.snapshot.json` | verified identity snapshot (0400) |
+| `~/.catalyst/users/credentials.json` | the shared login, when catalyst-users is set up for the same provider and client |
+| `$CATALYST_HOME/identity/<key>.json` | otherwise: tokens from `catalyst identity login`, one file per provider (canonical issuer) and client (0600, dir 0700) |
+| `$CATALYST_HOME/identity/<key>.snapshot.json` | verified identity snapshot (0400), kept per provider |
 
-So **`catalyst-users login` does not log you in for catalyst signing, and `catalyst identity login` does not log
-you in for `catalyst-users` admin commands or catalyst-mcp.** Both share only `IAM/settings.json` (system account).
+A token file kept under the pre-0.120.0 `url` pointer shape is no longer read: log in once more. Up to 0.119.2 the two
+stores were always separate, so `catalyst-users login` did not log you in for catalyst signing.
 
-The two token stores and the one file they share:
+The stores since 0.120.0:
 
 ```mermaid
 flowchart LR
-  subgraph CU["catalyst-users side"]
-    L1["catalyst-users login"] --> CJ[("~/.catalyst/users/credentials.json")]
-    CJ --> UCLI["catalyst-users admin commands"]
-    CJ --> MCP["catalyst-mcp (stdio actor)"]
-  end
-  subgraph KS["kernel side"]
-    L2["catalyst identity login"] --> KT[("$CATALYST_HOME/identity/hash.json")]
-    KT --> SIGN["catalyst signing"]
-  end
+  L1["catalyst-users login"] --> CJ[("~/.catalyst/users/credentials.json<br/>one login at a time")]
+  L2["catalyst identity login<br/>(device flow or --password)"] --> Q{"catalyst-users set up for the<br/>same provider and login client?"}
+  Q -- "yes" --> CJ
+  Q -- "no" --> KT[("$CATALYST_HOME/identity/key.json<br/>per provider")]
+  CJ --> UCLI["catalyst-users admin commands"]
+  CJ --> MCP["catalyst-mcp (stdio actor)"]
+  CJ --> SIGN["catalyst signing"]
+  KT --> SIGN
   SETS[("~/.catalyst/users/IAM/settings.json<br/>the system account")] --> UCLI
   SETS --> MCP
   SETS --> SIGN
@@ -780,10 +801,10 @@ flowchart LR
 | Command | Options | Notes |
 | --- | --- | --- |
 | `catalyst identity configure` | `--provider {keycloak,static}`, `--issuer`, `--client`, `--catalyst-client`, `--link`, `--as`, `--intent` | writes and journals `IAM/identity.json` |
-| `catalyst identity login` | `[--issuer URL [--client C]] [--json]` | **device flow only** (no `--password`: the vendored core is 0.7.0); then prints whoami; `--issuer` works outside a deployment (before `init`) |
+| `catalyst identity login` | `[--issuer URL [--client C]] [--password [--username U] [--password-command CMD]] [--json]` | device flow, or since 0.120.0 `--password` (REQ-000107): a password login through the provider's password client (`catalyst-admin-cli`), the password from `--password-command`'s first line, else one line of stdin, else asked without echo — never an argument; then prints whoami; `--issuer` works outside a deployment (before `init`) |
 | `catalyst identity logout` | `[--issuer --client]` | revoke + delete kernel tokens + snapshot |
 | `catalyst identity whoami` | `[--issuer --client] [--json] [--as]` | verified now; shows `userid` (or "none yet: given at your first signature"), groups, roles, grants, reconciliation, administers |
-| `catalyst identity status` | `[--issuer --client] [--json]` | no network: provider, issuer, `logged_in` (kernel tokens file exists) |
+| `catalyst identity status` | `[--issuer --client] [--json]` | no network: provider, issuer, `logged_in` (a tokens file exists). Known gap: it can say logged in while signing falls back to the system account (a lapsed login); to be fixed |
 | `catalyst identity link USER` | `[--as]` | keep a retired user's userid |
 
 Exit 1 with `catalyst: <message>` on any identity failure.
@@ -804,8 +825,9 @@ Exit 1 with `catalyst: <message>` on any identity failure.
 
 A change to identity code is made in catalyst-users first, released (tag), then in a catalyst checkout:
 `python3 scripts/vendor_identity.py <catalyst-users checkout> <tag>` (reads files at the tag, rewrites
-`catalyst_users` imports to `catalyst.identity`, writes `VERSION` with hashes). Currently vendored: 0.7.0. Not yet in
-the kernel: 0.8.0 `update_user`, 0.9.0 `login --password`, 0.10.0 `user_roles`/`role_holders`.
+`catalyst_users` imports to `catalyst.identity`, writes `VERSION` with hashes). Currently vendored: **0.11.0** (kernel
+0.120.0, which brought in 0.8.0 `update_user`, 0.9.0 `login --password`, 0.10.0 `user_roles`/`role_holders` and 0.11.0's
+loopback issuers and `system_pointer`).
 
 The vendoring path from a catalyst-users change to the kernel:
 
@@ -1032,7 +1054,7 @@ covered in the kernel chapter.
 catalyst-mcp [-h] [--version] [--transport {stdio,streamable-http}] [--host HTTP_HOST] [--port HTTP_PORT]
 ```
 
-Flags override `CATALYST_MCP_*` env. `--version` → `catalyst-mcp 0.4.0`. stdio is the default; streamable HTTP
+Flags override `CATALYST_MCP_*` env. `--version` → `catalyst-mcp 0.4.1`. stdio is the default; streamable HTTP
 listens at `http://127.0.0.1:8765/mcp` by default. Logs on stderr. Exit 0 on normal stop; settings validation errors
 (e.g. bad `CATALYST_MCP_CATALYST_ROOT`) abort at start.
 
@@ -1275,8 +1297,8 @@ Expect `username <u>`, issuer `http://localhost:8080/realms/catalyst`, groups `/
 `/criteria/<name>/admins`; roles include `catalyst-admin`, `criterion-admin`; `administers: [<name>]`. Grants are
 empty until step 4.
 
-Common failures: outcome `unreachable` (Keycloak not up — settings written unchecked, exit 0: re-run with `--force`
-once it is up); `invalid_grant` (wrong password, user missing, or Keycloak "Account is not fully set up": missing
+Common failures: outcome `unreachable` (Keycloak not up — settings written unchecked, exit 1 since 0.11.0, exit 0
+before: re-run with `--force` once it is up); `invalid_grant` (wrong password, user missing, or Keycloak "Account is not fully set up": missing
 email/names or temporary password); `the realm has no client catalyst-admin-cli …` (old persisted realm: run
 `uv run python keycloak/sync_clients.py`); `refusing http:// to <host>` (non-loopback HTTP: use HTTPS);
 `<path> exists: pass --force`.
@@ -1304,9 +1326,9 @@ Options (pick one):
 1. From the checkout: `alias catalyst-users='uv run -q --project <catalyst-users checkout> catalyst-users'` (what the
    quickstart does; the VS Code extension's **IAM → Command** setting takes the same string).
 2. As a uv tool (standard uv, not documented in the repo): `uv tool install
-   git+https://github.com/cantica-tech/catalyst-users@0.10.0` → `catalyst-users` on `PATH`.
+   git+https://github.com/cantica-tech/catalyst-users@0.11.0` → `catalyst-users` on `PATH`.
 
-Verify: `catalyst-users --version` → `catalyst-users 0.10.0`; `catalyst-users providers`.
+Verify: `catalyst-users --version` → `catalyst-users 0.11.0`; `catalyst-users providers`.
 
 The kernel does **not** need this CLI to sign (it carries its own copy); you need it for setup and administration.
 
@@ -1321,8 +1343,10 @@ python3 <catalyst>/dist/catalyst.pyz init --kernel <catalyst>/framework/kernel \
 #   explicit provider instead of this machine's settings:  --identity-issuer http://localhost:8080/realms/catalyst
 ```
 
-Without `--identity-issuer`, `init` writes `IAM/identity.json` from `~/.catalyst/users/IAM/settings.json`
-(`{"provider":"keycloak","url":…,"realm":…,"client":…,"password_client":…,"catalyst_client":…}`). The criterion goes
+Without `--identity-issuer`, `init` writes `IAM/identity.json` from `~/.catalyst/users/IAM/settings.json`, as the
+issuer since kernel 0.120.0 (before: `{"provider":"keycloak","url":…,"realm":…,"client":…,"password_client":…,
+"catalyst_client":…}`, which `catalyst migrate --apply` now rewrites). Since 0.120.0 `--kernel` may be left out (the
+`catalyst.pyz` carries its kernel). The criterion goes
 to `$CATALYST_HOME/projects/<name>/criterion`; only `catalyst.toml` is added to the project. `init` signs as the
 verified identity (logged-in kernel user, else system account) — a fix in kernel 0.117.1.
 
@@ -1345,7 +1369,9 @@ tail -n 1 "$(catalyst where)/IAM/signers.jsonl"   # {"userid","iss","sub","usern
 
 Expected: `whoami` shows a userid (after the first signature, which `init` performed), `administers <name>`, grants
 `cmd:*`, `reconcile:full`. Journal entries name the ledger username as actor. If nobody ran `catalyst identity login`
-you see `catalyst: no one is logged in: signing as the system account <u>` on stderr — that is normal.
+you see `catalyst: no one is logged in: signing as the system account <u>` on stderr — that is normal; since 0.120.0
+`catalyst hook start` also says it once when an agent session starts. A `catalyst-users login` for the same provider
+counts as a catalyst login since 0.120.0.
 
 ### Step 8 — First people
 
@@ -1550,7 +1576,7 @@ deployments sign through it.
 | `catalyst` read-only commands (`where`, `list`, `check`, `identity status`) | work (`check` validates files, not the provider) | no signature |
 | Stop hook / commit-msg hook | trace checks work; anything that must journal fails | |
 | `catalyst-users` everything except `providers` | exit 1 `identity provider unreachable` | |
-| `catalyst-users setup` | writes settings **unchecked**, exit 0 | by design (`unreachable` outcome) |
+| `catalyst-users setup` | writes settings **unchecked**, exit 1 (0 before 0.11.0) | `unreachable` outcome; `setup --force` once up |
 | `catalyst serve --identity-issuer` | provider tokens rejected (introspection fails) | |
 | catalyst-mcp stdio | every gated write refused ("no verified actor"); `list_templates`, `list_watches` still work; watches keep running but every adopt is refused and retried at the next trigger | gate resolves actor via catalyst-users |
 | catalyst-mcp HTTP | 401 on every request | token verifier can't introspect |
@@ -1573,7 +1599,7 @@ flowchart TD
   E -- no --> OK["retry the command"]
   F --> OK
   B -- yes --> G{"not logged in to that issuer?"}
-  G -- yes --> H["catalyst identity login, or align the issuer spelling<br/>localhost versus 127.0.0.1"]
+  G -- yes --> H["catalyst identity login<br/>(or catalyst-users login, shared since 0.120.0)"]
   G -- no --> I{"no grant allows the command?"}
   I -- yes --> J["grant a role or group, or appoint a criterion admin<br/>then wait for the token refresh"]
   I -- no --> K["see the table below"]
@@ -1583,8 +1609,8 @@ flowchart TD
 
 | Symptom | Cause | Fix |
 | --- | --- | --- |
-| `no verified identity: not logged in to <issuer>` | no kernel login, and no system account for **that issuer** | `catalyst identity login`, or fix issuer spelling (`localhost` vs `127.0.0.1`) so it matches settings.json |
-| catalyst signs as the system account though you "logged in" | you ran `catalyst-users login`, not `catalyst identity login` | separate token stores (§4.3) |
+| `no verified identity: not logged in to <issuer>` | no login, and no system account for **that provider** | `catalyst identity login`; loopback spellings match since 0.120.0, other spellings do not |
+| catalyst signs as the system account though you "logged in" | up to 0.119.2: you ran `catalyst-users login`, not `catalyst identity login` (separate stores). Since 0.120.0: a lapsed login (`identity status` may still say logged in), a different issuer spelling or login client, or a token kept under the old `url` pointer shape | log in again (§4.3) |
 | `--as X: you are logged in as Y` | `--as` names someone else | log in as X |
 | `<who> may not … : no grant allows it` | missing `cmd:` grant | grant a role/group; or appoint criterion admin; tokens refresh ≤ 5 min |
 | `not allowed: your account lacks the realm-management rights` | directory command without realm-admin / outside your criterion | log in as catalyst-admin |
@@ -1603,30 +1629,36 @@ flowchart TD
 
 1. **Directory name typo is real**: Keycloak's data lives in `.keycloack/` (sic), gitignored. Don't "fix" it — compose,
    CI and docs all use it.
-2. **Global flags before the command** (`catalyst-users --json whoami`); README's `whoami [--json]` form fails.
-3. **Two token stores**: `catalyst-users login` (CLI + catalyst-mcp) vs `catalyst identity login` (kernel signing).
+2. ~~**Global flags before the command**; README's `whoami [--json]` form fails.~~ Fixed in 0.11.0: they work
+   after the command too.
+3. **Two token stores** (up to kernel 0.119.2; since 0.120.0 one login is shared when both name the same provider and
+   client, §4.3): `catalyst-users login` (CLI + catalyst-mcp) vs `catalyst identity login` (kernel signing).
    catalyst-mcp watches adopt with `catalyst journal adopt --as <catalyst-users session username>`; the kernel then
    verifies **its** login or the system account. If the person logged into catalyst-users is neither the kernel's
    logged-in identity nor the system account, the adopt is refused (inferred from code; see §14).
-4. **Issuer string must match exactly** between `IAM/identity.json` and `IAM/settings.json` for the system-account
-   fallback (`localhost` ≠ `127.0.0.1`; trailing slash stripped only). The quickstart uses `127.0.0.1:8081`; compose
-   setups use `localhost:8080`.
-5. **Kernel vendors catalyst-users 0.7.0**, catalyst-mcp pins **0.8.0**, the CLI is **0.10.0**. Hence no
-   `catalyst identity login --password` in the kernel.
+4. ~~**Issuer string must match exactly** between `IAM/identity.json` and `IAM/settings.json` for the system-account
+   fallback (`localhost` ≠ `127.0.0.1`).~~ Since catalyst-users 0.11.0 and kernel 0.120.0 the loopback spellings
+   (`localhost`, `127.0.0.1`, `::1`) name one provider. Other spellings (another host name) still differ. The
+   quickstart uses `127.0.0.1:8081`; compose setups use `localhost:8080`.
+5. **Version skew**: ~~kernel vendors 0.7.0, so no `catalyst identity login --password`~~ — the kernel vendors
+   **0.11.0** since 0.120.0 and has `--password`. Still: catalyst-mcp and catalyst-kb-engine pin **0.10.0**, the CLI is
+   **0.11.0**; their move to 0.11.0 is pending.
 6. **Explicit Keycloak flags/env disable settings.json**: setting `CATALYST_USERS_SERVER` (or catalyst-mcp's
-   `CATALYST_MCP_KEYCLOAK_URL`/`REALM`/`CLIENT_ID`) makes catalyst-users skip `IAM/settings.json` and therefore lose
-   the system account (no username/password_command) — catalyst-mcp's README calls these "overrides", but they
-   switch the source (inferred from `config.pointer`).
-7. **`setup` exits 0 when Keycloak is down** and writes unchecked settings; check its `outcome` (`--json`).
+   `CATALYST_MCP_KEYCLOAK_URL`/`REALM`/`CLIENT_ID`) makes catalyst-users skip `IAM/settings.json`. ~~and therefore lose
+   the system account~~ Since 0.11.0 (BUG-000049) an override naming settings.json's own provider keeps its system
+   account (`CATALYST_USERS_SERVER=http://127.0.0.1:8080 catalyst-users token --system` works); an override naming
+   another provider still has none. catalyst-mcp pins 0.10.0, so it does not have this fix yet.
+7. ~~**`setup` exits 0 when Keycloak is down**~~ Fixed in 0.11.0: it exits 1, still writing the settings unchecked.
 8. **compose `--import-realm` never updates an existing realm**: realm-file edits need `sync_clients.py` (clients and
    mappers only) or manual changes; roles/groups are not synced.
 9. **Health endpoint not reachable from the host**: `KC_HEALTH_ENABLED` serves on management port 9000, not published;
    use the realm discovery URL as readiness probe (CI does).
 10. **Port 8765** is the default of both `catalyst serve` and catalyst-mcp HTTP.
-11. **`token --system` help says "client credentials"** — stale since 0.4.0 (it is a password grant on
-    `catalyst-admin-cli`). `groups add-member` help reads "add member to/from a group" (cosmetic).
-12. **`set_admin.py` defaults `--service` to a developer-specific keychain item** and removes every other member of
-    `/catalyst-admins`. macOS-only.
+11. ~~**`token --system` help says "client credentials"**~~ Fixed in 0.11.0: it names the password grant.
+    `groups add-member` help reads "add member to/from a group" (cosmetic; not re-checked).
+12. **`set_admin.py` defaults `--service` to a developer-specific keychain item** (always pass `--service`).
+    ~~It removes every other member of `/catalyst-admins`.~~ Since 0.11.0 it keeps them unless `--sole-admin`.
+    macOS-only.
 13. **System account = a human admin's account**. Anything that signs with nobody logged in signs as that admin; on a
     shared machine everyone's unattended work is attributed to them.
 14. **Grants are realm-wide**; criterion scoping exists only for admins (and members on served criteria).
@@ -1638,16 +1670,20 @@ flowchart TD
     shared host; Keycloak `start-dev` is not production mode (no TLS, H2).
 18. catalyst-mcp `create_criterion` makes new repos on branch `main` under `~/catalyst-mcp/projects` by default, not
     under your sources tree.
-19. The `catalyst-tests` client (password grant) is in the dev realm file: remove it for any non-dev realm.
+19. ~~The `catalyst-tests` client (password grant) is in the dev realm file.~~ Since 0.11.0 it lives in
+    `keycloak/realm-catalyst-tests.json`, added by the integration tests only to the realm they run against; never
+    add it to a non-dev realm. A Windows gap remains: catalyst-users' password command is split POSIX-style, so an
+    unquoted Windows interpreter path loses its backslashes (seen in a kernel test, fixed there; open in
+    catalyst-users).
 20. Restoring an older Keycloak backup or resetting the realm changes `sub`s → people re-enrol as new signers with new
     userids; the ledger never rewrites (L7), so the old line stays orphaned.
-21. **Two pointer shapes, two kernel logins.** The kernel's token file name is a hash of the pointer's `issuer` key
-    and client (`provider.credentials_path`). A `url`+`realm` pointer has no `issuer` key, so it hashes differently
-    from an `issuer` pointer to the very same realm: `catalyst identity login` in one deployment does not log you in
-    for a deployment of the other shape, and `catalyst identity status` prints an empty issuer for the `url` shape. Signing still works in
-    both (the system account fallback compares the computed issuer). To unify, `catalyst identity configure --issuer
-    http://localhost:8080/realms/catalyst` in the `url`-shaped deployments (a journaled change), or pass
-    `--identity-issuer` to `catalyst init`. (Inferred from code.)
+21. ~~**Two pointer shapes, two kernel logins.**~~ Fixed in kernel 0.120.0 (BUG-000057): one shape, the issuer;
+    tokens and snapshots are kept per canonical issuer, so a login carries across shapes and spellings, and
+    `catalyst migrate --apply` rewrites a `url`+`realm` pointer. A token file kept under the old shape is no longer
+    read: log in once more.
+22. **`identity status` and the signer can disagree** (seen 2026-10-31 and 2026-11-01): with a lapsed login,
+    `catalyst identity status` says logged in while signing (and `whoami`) falls back to the system account. Open in
+    the kernel; the longer SSO timeouts of the dev realm (12 h idle, 7 days) make it rarer.
 
 ---
 
@@ -1662,8 +1698,10 @@ flowchart TD
   onboarding JSON editor, running `setup`/`roles provision`, masked password field → keychain, `catalyst init` from
   the UI, step-by-step outcomes. Open: where the onboarding JSON is kept (proposed: nowhere), non-Keycloak provider
   forms.
-- **Stage two**: catalyst-users integrated into catalyst (done via vendoring; kernel lags at 0.7.0 — re-vendor
-  0.8.0–0.10.0 pending).
+- **Stage two**: catalyst-users integrated into catalyst (done via vendoring; ~~kernel lags at 0.7.0~~ re-vendored
+  at 0.11.0 in kernel 0.120.0, with the shared login).
+- **Pending**: catalyst-mcp and catalyst-kb-engine to catalyst-users 0.11.0; the Windows password command in
+  catalyst-users; `identity status` agreeing with `whoami` in the kernel.
 - **User groups on the server** wait for user groups themselves (catalyst design 30; `docs/membership.md`).
 - **Changing provider** procedure exists on paper (adapter + recreate `/criteria/<name>/members` from the ledger +
   `catalyst serve members check`); no second provider implemented.
@@ -1674,10 +1712,11 @@ flowchart TD
 ## 14. Unverified in this chapter
 
 - Nothing was executed against Keycloak (read-only constraint): no `setup`, `login`, `provision`, `users add`,
-  export/import, or MCP tool call was run. `--help` outputs, `docker ps`, the discovery URL (HTTP 200 on a running
+  export/import, or MCP tool call was run. The 2026-11-01 refresh did not run `catalyst identity login --password` or
+  the shared login against the live Keycloak either. `--help` outputs, `docker ps`, the discovery URL (HTTP 200 on a running
   local instance) and `catalyst identity status` were observed.
 - The `kcadm.sh` sequence (step 2, Linux), `kc.sh export/import` via `docker compose run`, Podman compatibility, and
-  `uv tool install git+https://…catalyst-users@0.10.0` are standard tool usage, not documented or tested in the repos.
+  `uv tool install git+https://…catalyst-users@0.11.0` are standard tool usage, not documented or tested in the repos.
 - Gotcha 3 (adopt refused when the catalyst-users session differs from the kernel signer) and gotcha 6 (explicit
   Keycloak overrides drop settings.json and the system account in catalyst-mcp) are inferred from code paths, not
   reproduced.
@@ -1695,7 +1734,7 @@ flowchart TD
 | Topic | Source |
 | --- | --- |
 | catalyst-users overview, CLI table, config, security | `cantica-tech/catalyst-users:README.md` |
-| Versions and changes | `cantica-tech/catalyst-users:CHANGELOG.md` (0.1.0–0.10.0) |
+| Versions and changes | `cantica-tech/catalyst-users:CHANGELOG.md` (0.1.0–0.11.0) |
 | CLI parser | `cantica-tech/catalyst-users:src/catalyst_users/cli.py` |
 | Settings, home, pointer | `cantica-tech/catalyst-users:src/catalyst_users/config.py` |
 | Facade, registry, Whoami | `cantica-tech/catalyst-users:src/catalyst_users/provider.py` |
@@ -1708,7 +1747,7 @@ flowchart TD
 | Dev scripts | `cantica-tech/catalyst-users:keycloak/set_admin.py`, `keycloak/sync_clients.py` |
 | Greenfield onboarding | `cantica-tech/catalyst-users:docs/onboarding.md`, `tests/integration/onboarding/test_onboarding.py` |
 | Membership | `cantica-tech/catalyst-users:docs/membership.md` |
-| CI | `cantica-tech/catalyst-users:.github/workflows/ci.yml`, `cantica-tech/catalyst-mcp:.github/workflows/ci.yml` |
+| CI | `cantica-tech/catalyst-users:.github/workflows/ci.yml` and `standards.yml` (the shared lint with Pyright, since 0.11.0), `cantica-tech/catalyst-mcp:.github/workflows/ci.yml` |
 | Kernel signing | `cantica-tech/catalyst:scripts/catalyst/provider.py`, `scripts/catalyst/ids.py`, `scripts/catalyst/permissions.py` |
 | Kernel identity CLI | `cantica-tech/catalyst:scripts/catalyst/__main__.py` (`cmd_identity`, `_identity_doc`, serve args) |
 | Vendoring | `cantica-tech/catalyst:scripts/vendor_identity.py`, `scripts/catalyst/identity/VERSION` |

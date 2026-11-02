@@ -6,7 +6,11 @@ classification: Public
 Hand-off chapter for `cantica-tech/catalyst-ui`. It describes what the repository contains and how it works, how to
 build, test, package and release each deliverable, and what tends to break. Everything here was read from the
 repository at product version **0.69.0** (branch `development`, HEAD `1ec35eb`, 2026-10-31) unless marked
-**(unverified)**.
+**(unverified)**, then refreshed on 2026-11-01 for **0.70.0–0.73.0** (HEAD `89d1391`, from the commits and
+`catalyst-modules.md`'s release log): Node 24, CI on every long-lived branch, the core's spec and the desktop kernel at
+0.121.0 with `VERIFIED_KERNEL_VERSION` kept level, UI modules loading with no deployment open, "Run catalyst open" for
+a missing criterion, no ESLint suppressions, `task release:checklist`, the Users panel's log-in/log-out button, "Set
+Criterion Repo" with its icon, Search Items and Close/Reopen Bug. The new commands were read, not run interactively.
 
 Citations use the form `cantica-tech/catalyst-ui:path`. Other repositories are named by their GitHub names:
 `cantica-tech/catalyst` (the kernel and CLI), `cantica-tech/catalyst-users` (the identity facade),
@@ -52,12 +56,12 @@ project's private criterion repository (`<project>-criterion`).
 | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Repository             | `cantica-tech/catalyst-ui` (public), npm workspaces monorepo named `catalyst-ui-monorepo` (`cantica-tech/catalyst-ui:package.json`)                                                                                                                       |
 | Product name           | **Catalyst Studio** (decision C3); the repository keeps the name `catalyst-ui`                                                                                                                                                                             |
-| Version                | `0.69.0`, kept identical in `cantica-tech/catalyst-ui:version.txt`, every `packages/*/package.json` and `catalyst-core/src/index.ts` `VERSION` (a test checks them)                                                                                       |
+| Version                | `0.73.0`, kept identical in `cantica-tech/catalyst-ui:version.txt`, every `packages/*/package.json` and `catalyst-core/src/index.ts` `VERSION` (a test checks them)                                                                                       |
 | Licence                | Apache-2.0 from 0.47.0 (`LICENSE`, `NOTICE`: copyright CanticaTech); earlier releases were proprietary (decision C4)                                                                                                                                       |
 | Deliverables           | (1) the VS Code extension `CanticaTech.catalyst-host-vscode` ("Catalyst Studio — rules, journal and traceability for AI-assisted development"); (2) the desktop app "Catalyst Studio" (Electron) for macOS/Windows/Linux; (3) the Studio web bundle served by `catalyst serve --local --static` |
 | Kernel compatibility   | Works with catalyst kernel `>=0.54.0` (`packages/catalyst-host-vscode/package.json` → `catalyst.kernelVersion`). Individual Studio features need newer kernels (each noted where used, e.g. Studio page serving needs 0.64.0, actions need 0.77.0+, share panel 0.90.0) |
-| Desktop app's own CLI  | `catalyst.pyz` of the kernel in `packages/catalyst-host-electron/catalyst-version.txt` (0.119.2 at HEAD; the published 0.69.0 desktop build shipped 0.119.1)                                                                                            |
-| Governance             | catalyst-governed: `cantica-tech/catalyst-ui:catalyst.toml` (`project_name = "catalyst-ui"`, `module = "software-engineering"`, `kernel_version = "0.119.2"`, `repoed = true`, `catalyst_repo_url` (its private `<project>-criterion` repository), `criterion_branch = "criterion"`, `format = "1.0-rc"`). The criterion lives outside the repo in `$HOME/.catalyst/projects/catalyst-ui/criterion`; rule ID prefixes seen in code: `core`, `vscode`, `electron`, `env`, `studio` |
+| Desktop app's own CLI  | `catalyst.pyz` of the kernel in `packages/catalyst-host-electron/catalyst-version.txt` (0.121.0 since 0.71.0; 0.70.0 shipped 0.120.0)                                                                                                                  |
+| Governance             | catalyst-governed: `cantica-tech/catalyst-ui:catalyst.toml` (`project_name = "catalyst-ui"`, `module = "software-engineering"`, `kernel_version = "0.121.0"`, `repoed = true`, `catalyst_repo_url` (its private `<project>-criterion` repository), `criterion_branch = "criterion"`, `format = "1.0-rc"`). The criterion lives outside the repo in `$HOME/.catalyst/projects/catalyst-ui/criterion`; rule ID prefixes seen in code: `core`, `vscode`, `electron`, `env`, `studio` |
 | Requirement IDs        | `REQ-0000NN-<userid>`, `BUG-0000NN-<userid>`; every commit cites one or is `chore:` (enforced by the CI `catalyst-trace` job)                                                                                                                              |
 
 What catalyst-ui does: it makes catalyst's chain (rules → work items/artifacts → domains, with journal and checks)
@@ -90,17 +94,16 @@ flowchart LR
 
 ```text
 catalyst-ui/
-├── package.json              # workspaces: packages/*; root scripts lint/format:check/typecheck/test; engines node >=20
+├── package.json              # workspaces: packages/*; root scripts lint/format:check/typecheck/test; engines node >=24
 ├── package-lock.json         # npm ci source of truth
-├── version.txt               # 0.69.0 — product version
-├── .nvmrc                    # 20 (CI uses Node 24 — see §9)
+├── version.txt               # 0.73.0 — product version
+├── .nvmrc                    # 24 (since 0.70.0, as CI and the Desktop workflow)
 ├── Taskfile.yml              # the repo's own tasks (§5); includes ../standards/Taskfile.standards.yml optionally
 ├── catalyst.toml             # catalyst project file (the only catalyst file in the repo)
 ├── .catalystignore           # excludes packages/catalyst-core/src/test/fixtures (a sample criterion used as test data)
 ├── tsconfig.json             # solution file: project references to all six packages
 ├── tsconfig.base.json        # extends .standards/tsconfig.strict.json; ES2022, NodeNext, composite, declaration
 ├── eslint.config.mjs         # = .standards/eslint-standard.mjs
-├── eslint-suppressions.json  # ESLint bulk suppressions (ratchet)
 ├── .prettierrc.json, .prettierignore, .markdownlint-cli2.jsonc, .yamllint.yaml, .taplo.toml, .editorconfig
 ├── .standards/               # vendored copy of cantica-tech/standards (VERSION v0.1.1): eslint, tsconfig, markdownlint, yamllint, zizmor
 ├── .github/workflows/        # ci.yml, standards.yml, desktop.yml (§7.4)
@@ -195,14 +198,14 @@ import `vscode` (roadmap R6.1).
 | `discover.ts`                | `resolveCorpusRoot()` (where a project's criterion is, §3.9), `readDeployedKernelVersion()` (criterion `version.txt`), `REQUIRED_KERNEL_VERSION` (`>=0.54.0`), `workingCopyState()` (`reachable`/`dangling`/`missing`).      |
 | `project-file.ts`            | `catalyst.toml` reader (flat TOML subset) with legacy `<name>.catalyst` JSON fallback; `catalystHome()` (`$CATALYST_HOME` or `~/.catalyst`); `homeCriterion(name)`.                                                         |
 | `workspace.ts`               | Deployment discovery inside a workspace folder: `findDeployments()` (BFS to depth 4, skipping `.git`, `.criterion`, `node_modules`, `dist`, `out`, `build`, `.venv`, `venv`, `__pycache__`, `target`), `.catalystignore` semantics (empty file = opt the whole directory out; lines = relative paths), `governs()`/`owningDeployment()` (nested deployments own their subtree). Mirrors the kernel's scope rule. |
-| `kernel-version.ts`          | `KERNEL_VERSION_FLOOR = "0.54.0"`, `VERIFIED_KERNEL_VERSION = "0.54.0"`, `kernelSyncTarget()`, `restoreKernelVersion()`.                                                                                                    |
+| `kernel-version.ts`          | `KERNEL_VERSION_FLOOR = "0.54.0"`, `VERIFIED_KERNEL_VERSION = "0.121.0"` (the paired kernel, since 0.70.0/0.71.0), `kernelSyncTarget()`, `restoreKernelVersion()`.                                                          |
 | `spec.ts`                    | **Generated** — types for every `--json` output (`GraphJson`, `CheckJson`, `RunEventJson`, …) from `spec/*.schema.json`. Never edit by hand (§3.11).                                                                       |
 | `graph-artifact.ts`          | Browser-safe helpers (`isRow`, `isEntity`, `fieldsOf`, `titleOf`) — exported as subpath `catalyst-core/graph-artifact`.                                                                                                     |
 | `ui-module-manager.ts`       | In-memory zip reader/writer (own PKZip + CRC32 + `zlib` deflate), `UiModuleManager` (activate a module zip if its `kernelVersion` specifier matches), `packageUiModule()`.                                                   |
 | `remote-module-store.ts`     | Finds process-module bundles at a source URL (default `git@github.com:cantica-tech/cantica-tech.git/catalyst/`): local scan, shallow git clone cached in `<os tmp>/catalyst-git-remotes/<sha12>`, or GitHub REST tree + raw fetch. |
 | `versioning.ts`              | Version compare and uv-style specifiers (`>=`, `<=`, `>`, `<`, `==`, `!=`, `~=`, `*`, comma = AND).                                                                                                                         |
 | `agent-bridge.ts`, `agent-launch.ts`, `commands-discovery.ts`, `slash-command.ts` | Agent presets (`copilot` → `GitHub.copilot-chat`/`@workspace`; `claude`/`claude-code` → `anthropic.claude-code`/`@claude`), resolving which agent a project uses from the project file's `agent`/`chatAgents`, discovering the deployment's slash commands (from catalyst's command catalog), composing `/command args`. |
-| `join-criterion.ts`, `criterion.ts` | Legacy "connect an existing criterion repo" flow (clone into agent-owned storage, write pointer/`.criterion` gitignore); branch-name helpers (`<name>.criterion`). Predates the `$HOME/.catalyst` criterion home (see §11). |
+| `criterion.ts` | Branch-name helpers (`<name>.criterion`). The legacy `join-criterion.ts` ("connect an existing criterion repo": clone into agent-owned storage, write pointer/`.criterion` gitignore) was removed in 0.71.0 (REQ-000074): a criterion not on this machine is readied by `catalyst open`. |
 | `iam.ts`, `journal.ts`, `ids.ts`, `markdown.ts`, `host-port.ts`, `types.ts` | Coercers for users/roles/journal, ID regexes and short-form resolution, markdown sectioning, the `HostPort` abstraction (`ScriptedHost` for tests). |
 
 How a host reads and follows a project through `catalyst-core`:
@@ -472,7 +475,10 @@ the `catalyst.ignoredFolders` setting. Nested deployments are separate entries a
 3. Claude Code storage `~/.claude/projects/<slug>/.criterion` (slug = absolute path with non-alphanumerics → `-`).
 
 If none resolves, `workingCopyState()` distinguishes `dangling` (a `.criterion` symlink to a path not present here —
-typical in dev containers/WSL/SSH) from `missing`, and the extension shows `unreachableAdvice()` once.
+typical in dev containers/WSL/SSH) from `missing`, and the extension shows `unreachableAdvice()` once. Since 0.71.0
+(REQ-000074) a project whose criterion is not on this machine offers **"Run catalyst open"**, which runs
+`catalyst open` in the project (with a progress notification) and reports what it could not ready; the in-project
+connect flow and its set-up choice are gone.
 
 Criterion resolution, first hit wins:
 
@@ -488,7 +494,7 @@ flowchart TD
   L3 -->|found| OK
   L3 -->|no| W{"workingCopyState()"}
   W -->|"dangling"| ADV["unreachableAdvice(), shown once"]
-  W -->|"missing"| MISS["no criterion here"]
+  W -->|"missing"| MISS["no criterion here:<br/>offer Run catalyst open (0.71.0)"]
 ```
 
 **What is read**: only through `catalyst serve` (decision S2 / R5.3: the UI does not parse criterion files for the
@@ -498,12 +504,14 @@ is read directly for the status bar tooltip and kernel compatibility checks.
 
 ### 3.10 Kernel-version compatibility
 
-- `KERNEL_VERSION_FLOOR = VERIFIED_KERNEL_VERSION = "0.54.0"` (`catalyst-core/src/kernel-version.ts`).
-  `REQUIRED_KERNEL_VERSION = ">=0.54.0"` must equal `catalyst-host-vscode/package.json` `catalyst.kernelVersion`
-  (a test checks). Bump them together when a build is verified against a newer kernel.
+- `KERNEL_VERSION_FLOOR = "0.54.0"`, `VERIFIED_KERNEL_VERSION = "0.121.0"` (`catalyst-core/src/kernel-version.ts`).
+  `REQUIRED_KERNEL_VERSION = ">=0.54.0"` (from the floor) must equal `catalyst-host-vscode/package.json`
+  `catalyst.kernelVersion` (a test checks). Since 0.70.0 (BUG-000047) `VERIFIED_KERNEL_VERSION` is **the kernel each
+  release is paired with**: a test fails while it is older than the desktop app's `catalyst-version.txt`, so it is
+  raised with every paired kernel (`task release:checklist` step 1). Up to 0.69.0 it stayed at 0.54.0.
 - **Sync offer**: for each resolved deployment whose `version.txt` < `VERIFIED_KERNEL_VERSION`, one shared
-  notification offers a sync (once per session). Because the verified version is still 0.54.0, current deployments
-  (0.119.x) never get an offer.
+  notification offers a sync (once per session), never a downgrade. Since 0.71.0 it fires again for deployments behind
+  the paired kernel.
 - Missing/unreadable `version.txt` counts as compatible ("can't compare" is never a failure).
 - The `release:vsix` manifest's `kernelVersion` comes from the same `catalyst.kernelVersion` field.
 
@@ -549,14 +557,16 @@ Decision **C6** (2026-10-19): a module is **data only**; the Studio draws it fro
 **(b) UI-module bundles (shipped but not rendered).** `cantica-tech/catalyst-software-engineering` has a `ui/`
 directory (npm package `@catalyst-modules/software-engineering-ui`: `Backlog.tsx`, `RoadmapDetails.tsx`,
 `index.ts`; its `tsconfig.json` resolves `catalyst-core` types from a sibling `../../catalyst-ui/` checkout). catalyst's
-release tooling zips a module with a `manifest.json` into `cantica-tech/cantica-tech:catalyst/modules/<id>/v<version>/`.
+release tooling zips a module with a `manifest.json` into `cantica-tech/cantica-tech:catalyst/modules/<id>/v<version>/`
+(only there since kernel 0.121.0; a manifest names an `entry` only when the release ships a built UI bundle, which SE
+3.6.0's does not).
 The extension can discover, download, validate and hold one such bundle in memory:
 
 | Step      | Code                                                                                                                                                                                                                  |
 | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Discover  | `fetchRemoteUiModules(catalyst.moduleSourceUrl)` — accepts `git@host:owner/repo.git/path/`, `https://github.com/owner/repo/tree/branch/path`, `git+https://…#branch:path`, `raw.githubusercontent.com` URLs, or a local path; derives `…/modules` and `…/kernel` subpaths; strategies: local scan → shallow `git clone --depth=1` cached in `<tmp>/catalyst-git-remotes/<sha256(url)[:12]>` (works over SSH for private repos) → GitHub REST tree API + raw manifest fetches. Expects `<modules>/<id>/v<version>/manifest.json` beside a zip (prefers `<id>-v<version>.zip`). |
 | Validate  | `manifest.json` (else `ui-module.json`, else `module.json`, at zip root or a subfolder): required `id`, `name`, `version`, `kernelVersion` (legacy `frameworkVersion` accepted); `entry` (e.g. `ui/index.js`) declared but **not executed**. |
-| Activate  | `UiModuleManager.loadAndActivateZipModule(zip, kernelVersion)`; kernel version checked = the one set by "Load Specific Kernel Version in Memory…", else the first deployment's `version.txt`, else the floor.               |
+| Activate  | `UiModuleManager.loadAndActivateZipModule(zip, kernelVersion)`; kernel version checked = the one set by "Load Specific Kernel Version in Memory…", else the first deployment's `version.txt`, else (since 0.71.0, BUG-000048) `VERIFIED_KERNEL_VERSION` — no longer the floor, which current modules require more than, so a module loads with no deployment open. |
 | Persist   | `<globalStorageUri>/active-module.zip` (one slot), restored at activation (logged to the "Catalyst" output channel, never a notification).                                                                              |
 
 Commands: "Catalyst: Switch Process UI Module…" (discover + pick + download + activate), "Catalyst: Load Zipped UI
@@ -636,7 +646,7 @@ on blanks without a shell (quotes group, leading `~/` expands). Every call is `<
 | (internal) system token                   | `token --system` → `access_token`, `expires_at` (never displayed)                                         | 0.3.0                  |
 | Users panel (`catalystUsers` view)        | `users list`, `roles list`, `groups list`; read when shown or on Refresh, never in the background         | (unverified)           |
 | User / role / group documents             | `users roles <u>`, `users groups <u>`; `roles holders <r>`; `groups members <path>` → `DirectoryDetail` webview, links between them | (unverified) |
-| "Log In to catalyst-users" (right-click a user, or the panel's "Log in…" item) | `login --password --username <u>`, password written to **stdin**, never argv; error text has the password redacted; on success the panel refreshes | 0.9.0 |
+| "Log In to catalyst-users" / "Log Out of catalyst-users" — since 0.72.0 (REQ-000075) one button in the Users panel's title bar, left of Refresh: the log-in icon when no one is logged in, the log-out icon when someone is (context key `catalyst.users.loggedIn`); logout asks first. The user context menu's Log In is gone | `login --password --username <u>`, password written to **stdin**, never argv; error text has the password redacted; on success the panel refreshes. `logout` | 0.9.0 |
 
 Logging in from the Users panel:
 
@@ -646,7 +656,7 @@ sequenceDiagram
   participant X as VS Code extension
   participant U as catalyst-users CLI
   participant K as Identity provider (Keycloak)
-  P->>X: Log In on a user
+  P->>X: Log In button in the Users panel's title bar
   X->>P: ask for the password
   X->>U: --json login --password --username name
   X->>U: password on stdin, never in argv
@@ -674,14 +684,27 @@ are catalyst-users'.
 
 | View ID                  | Name      | Content                                                                                                                            |
 | ------------------------ | --------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `catalystChainInspector` | Instances | Every deployment as a top-level entry (renamed from "Instance(s)" in 0.69.0); type sections; each entity once; Journal and Backlog entries; unset folders offering setup. Title bar: Switch UI module, Refresh, Send to Agent, Configure Criterion Repo, Open Settings. |
-| `catalystUsers`          | Users     | Users, Roles, Groups sections from catalyst-users; context menu on a user: Log In. Title bar: Refresh.                             |
+| `catalystChainInspector` | Instances | Every deployment as a top-level entry (renamed from "Instance(s)" in 0.69.0); type sections; each entity once; Journal and Backlog entries; unset folders offering setup. Title bar: Search Items (0.73.0), Switch UI module, Refresh, Send to Agent, Set Criterion Repo (renamed from "Configure Criterion Repo" in 0.72.0, with an upload-repo icon, light and dark), Open Settings. Context menu on a bug (0.73.0): Close Bug when open, Reopen Bug when closed; both greyed out ("needs the /status grant") where the person's roles do not grant `/status`; trusted workspaces only. |
+| `catalystUsers`          | Users     | Users, Roles, Groups sections from catalyst-users. Title bar: Log In or Log Out (by who is logged in, 0.72.0), Refresh. No user context menu since 0.72.0. |
 
-**Commands** (all titled "Catalyst: …"): `catalyst.showNodeDetail`, `catalyst.openJournal`, `catalyst.openBacklog`,
-`catalyst.openStudio`, `catalyst.sendToAgentChat`, `catalyst.configureCriterion`, `catalyst.refreshChainInspector`,
-`catalyst.loadUiModule`, `catalyst.selectKernelVersion`, `catalyst.switchUiModule`, `catalyst.openSettings`,
-`catalyst.setUpFolder`, `catalyst.checkIamAccount`, `catalyst.iam.login`, `catalyst.users.refresh`,
-`catalyst.users.open` (hidden from the palette).
+**Search Items** (`catalyst.searchInstances`, 0.73.0, REQ-000076): the search button on top of the Instances view, or
+Ctrl+Alt+F (Cmd+Alt+F on macOS) while the view has focus (F3 still opens the view's own find), lists every item of
+every open project as you type — ID and title with its status; type an ID, a name, a status or a type. The chosen item
+is selected in the tree and its document opens.
+
+**Close Bug / Reopen Bug** (`catalyst.closeBug`, `catalyst.reopenBug`, 0.73.0, REQ-000077): you give a reason, the
+editor shows catalyst's preview of the change and runs `catalyst status set` only on your yes, through the host's
+write allow-list; if catalyst refuses (a bug's steps still open, say), its reason is shown and nothing changes. The
+`.denied` variants are the greyed-out entries.
+
+**Commands** (titled "Catalyst: …" unless noted): `catalyst.showNodeDetail`, `catalyst.searchInstances` ("Search
+Items"), `catalyst.closeBug`, `catalyst.reopenBug` and their `.denied` variants (context menu only),
+`catalyst.openJournal`, `catalyst.openBacklog`, `catalyst.openStudio`, `catalyst.sendToAgentChat`,
+`catalyst.configureCriterion` ("Set Criterion Repo…"), `catalyst.refreshChainInspector`, `catalyst.loadUiModule`,
+`catalyst.selectKernelVersion`, `catalyst.switchUiModule`, `catalyst.openSettings`, `catalyst.setUpFolder`,
+`catalyst.checkIamAccount`, `catalyst.iam.login`, `catalyst.iam.logout`, `catalyst.users.refresh`,
+`catalyst.users.open` (hidden from the palette). Keybinding: `catalyst.searchInstances` on Ctrl+Alt+F / Cmd+Alt+F
+when the Instances view has focus.
 
 **Settings**:
 
@@ -724,17 +747,20 @@ catalyst's own commands are **not** here: `catalyst task` lists them from the cr
 | `ci`                                   | `lint`, `format:check`, `typecheck`, `test` (what `ci.yml`'s first job runs, plus `standards:lint`)    | as above                                            | exit 0                                       |
 | `build:vscode-extension`               | in `packages/catalyst-host-vscode`: `npm run package`                                                  | `packages/catalyst-host-vscode/catalyst-host-vscode.vsix` (gitignored) | `unzip -l …vsix` lists `extension/dist/extension.js`, `webview.js`, `studio/index.html` |
 | `install:vscode-extension`             | `build:vscode-extension` then `"$CODE_BIN" --install-extension catalyst-host-vscode.vsix`             | installs into the local VS Code                     | <code>code --list-extensions --show-versions \&#124; grep catalyst-host-vscode</code> |
-| `install:vscode-extension:unsigned`    | build, `node scripts/enable-unsigned-install.js` (sets `extensions.verifySignature: false` in your **real** VS Code user settings), install | user `settings.json` edited | as above |
+| `install:vscode-extension:unsigned`    | build, `node scripts/enable-unsigned-install.js set` (sets `extensions.verifySignature: false` in your **real** VS Code user settings), install, then (since 0.71.0) `restore` puts the previous value back | user `settings.json` edited for the install only | as above |
 | `publish:vscode-extension`             | in host-vscode: `npm run publish` = build + bundle + `npx vsce publish --no-dependencies`              | **public Marketplace release** — owner request only | Marketplace page version                    |
 | `publish:vscode-extension:release`     | refuses unless `git describe --tags --exact-match HEAD` is a tag equal to `package.json` version (with or without `v`); then `publish:vscode-extension`; then `release:vsix:publish` with `PUBLISH_DIR` default `../cantica-tech`, `KERNEL_VERSION` default `catalyst.kernelVersion` | Marketplace + commit/push in the distribution repo | — **do not run unless the owner asks** |
 | `release:vsix`                         | `build:vscode-extension`, then `node scripts/release-vsix.mjs --publish-dir "$PUBLISH_DIR"` (required var) | copies `.vsix` + `manifest.json` + regenerates `README.md` under `PUBLISH_DIR/catalyst/vsix/v<version>/`; **no commit** | `git -C $PUBLISH_DIR status` |
-| `release:vsix:publish`                 | `release-vsix.mjs --publish-dir … --push [--kernel-version …] [CLI_ARGS e.g. -- --tag <tag>]`: builds from the release tag in a temp worktree (`npm ci`, `npm run typecheck`, `npm run package`), copies, **commits "Deploy release: catalyst-host-vscode v<version>" and pushes `origin main`** of `PUBLISH_DIR` | distribution repo commit + push | `git -C $PUBLISH_DIR log -1` |
+| `release:vsix:publish`                 | `release-vsix.mjs --publish-dir … --push [--kernel-version …] [CLI_ARGS e.g. -- --tag <tag>]`: builds from the release tag in a temp worktree (`npm ci`, `npm run typecheck`, `npm run package`), copies, **commits "Deploy release: catalyst-host-vscode v<version>" and pushes `origin main`** of `PUBLISH_DIR` (default `../cantica-tech` since 0.71.0). Step 5 of `release:checklist`: every release | distribution repo commit + push | `git -C $PUBLISH_DIR log -1` |
+| `release:checklist` (0.71.0)           | prints the release checklist in order: (1) the paired kernel — `catalyst-version.txt`, `spec:sync`, `VERIFIED_KERNEL_VERSION`; (2) the version files; (3) from a clean build: `task ci`, the Studio build, `spec:check`, `task lint`, push, CI green; (4) development → main → release PRs and `gh release create`; (5) `task release:vsix:publish`. The Marketplace stays separate, on the owner's ask | nothing | — |
 | `standards:lint` (included)            | markdownlint `**/*.md`, `yamllint --strict .`, `actionlint`, `zizmor --config .standards/zizmor.yml --min-severity medium .github/workflows` (+ ruff/shellcheck when Python/shell files exist) | nothing | exit 0 |
 | `standards:check` / `standards:sync`   | drift check / copy of `cantica-tech/standards` into `.standards/`, `.editorconfig`, …                  | `sync` writes tracked files                         | —                                            |
 | `standards:format`, `standards:typecheck` | Prettier (and Ruff) in place / Pyright for Python (none here)                                       | `format` writes                                     | —                                            |
 
 The `standards:*` tasks exist only when a `cantica-tech/standards` checkout is at `../standards` (or `STANDARDS_DIR`).
-Without it, `task lint` fails at the `standards:lint` step; `npm run lint` alone still works.
+Without it, `task lint` stops and says so (since 0.70.0; before, an obscure missing-task error); `npm run lint` alone
+still works. Since 0.71.0 the code has **no ESLint suppression** left (the 39 were fixed in code, behaviour
+unchanged; `eslint-suppressions.json` is gone).
 
 ### 5.2 Root `package.json` scripts
 
@@ -781,7 +807,7 @@ Without it, `task lint` fails at the `standards:lint` step; `npm run lint` alone
 
 | Tool                 | Version / note                                                                                                                                                            | Check                                   |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
-| Node.js + npm        | `.nvmrc` pins **20**; `engines.node >=20`; CI and the Desktop workflow use **24**. Either works; use 24 to match CI.                                                       | `node --version`                        |
+| Node.js + npm        | **24** everywhere since 0.70.0: `.nvmrc`, `engines.node >=24`, CI and the Desktop workflow.                                                                                | `node --version`                        |
 | git                  | for `release-vsix.mjs` worktrees, spec sync, module discovery                                                                                                              | `git --version`                         |
 | Task v3              | optional but used throughout                                                                                                                                               | `task --version`                        |
 | VS Code ≥ 1.85       | with the `code` CLI on `PATH` (Command Palette → "Shell Command: Install 'code' command in PATH"), else the Taskfile falls back to the macOS app bundle path               | `code --version`                        |
@@ -830,9 +856,10 @@ npm test
 npm run build -w catalyst-studio      # catches a browser bundle reaching Node modules
 ```
 
-(`task ci` = lint (+ standards:lint), format:check, typecheck, test.) Expected: all exit 0. At HEAD `1ec35eb` on
-2026-10-31, **`npm test` fails** in `catalyst-core/src/test/spec.test.ts` because `spec/KERNEL` (0.119.1) ≠
-`catalyst-version.txt` (0.119.2); CI on `development` is red for the same reason (fix in §8.3).
+(`task ci` = lint (+ standards:lint), format:check, typecheck, test.) Expected: all exit 0. (At HEAD `1ec35eb` on
+2026-10-31 `npm test` failed because `spec/KERNEL` (0.119.1) ≠ `catalyst-version.txt` (0.119.2); fixed the same day by
+`559e168`, and both have been 0.121.0 since 0.71.0.) Before a release, `task release:checklist` lists this step with
+the others.
 
 ### 6.5 Build the VS Code extension (`.vsix`)
 
@@ -936,8 +963,9 @@ The first stdout line is JSON with `page` (URL with `#token=…`); open it. No r
 
 ### 7.1 Branch model
 
-Three long-lived branches, mirroring catalyst's own: **`development`** (all work; CI on push), **`main`** (GitHub
-default branch; receives `development` by PR), **`release`** (receives `main` by PR; GitHub releases target it).
+Three long-lived branches, mirroring catalyst's own: **`development`** (all work), **`main`** (GitHub default branch;
+receives `development` by PR), **`release`** (receives `main` by PR; GitHub releases target it). CI and Standards run
+on a push to any of the three since 0.70.0 (before, `development` only).
 None of the three is protected on GitHub (checked 2026-10-31); the discipline is procedural.
 
 How a release moves through the three branches:
@@ -954,32 +982,34 @@ gitGraph
   checkout main
   merge development id: "PR development to main"
   checkout release
-  merge main id: "PR main to release" tag: "0.69.0"
+  merge main id: "PR main to release" tag: "0.73.0"
 ```
 
 ### 7.2 Version and kernel bookkeeping per release
 
-A release commit on `development` is a `chore:` titled like `chore: bump version to 0.69.0; <summary>; works with kernel
->=0.54.0` and updates, together:
+A release commit on `development` is a `chore:` titled like `chore: bump version to 0.73.0; <summary>; works with kernel
+>=0.54.0` (a release that pairs with a new kernel adds `pairs with catalyst <ver>`) and updates, together:
 
 - `version.txt`, every `packages/*/package.json` `version`, root `package-lock.json`, `catalyst-core/src/index.ts`
   `VERSION` (tests compare them).
-- `catalyst-modules.md` release log row (convention; the file's header is stale).
-- If the verified kernel changes: `KERNEL_VERSION_FLOOR`/`VERIFIED_KERNEL_VERSION` and
-  `catalyst-host-vscode/package.json` `catalyst.kernelVersion` together.
+- `catalyst-modules.md` release log row (convention; its header was refreshed on 2026-10-31 and now reads "As of
+  2026-11-01").
+- When the paired kernel changes: `VERIFIED_KERNEL_VERSION` to it (a test fails while it is older than
+  `catalyst-version.txt`); `KERNEL_VERSION_FLOOR` and `catalyst-host-vscode/package.json` `catalyst.kernelVersion`
+  together only if the floor moves.
 - If the desktop app's kernel changes: `packages/catalyst-host-electron/catalyst-version.txt` **and**
   `spec:sync` to the same tag (the test enforces equality; the kernel's `catalyst.pyz` must already be published in
   `cantica-tech/cantica-tech:catalyst/kernel/v<version>/`).
 - Separately, catalyst-ui's own deployment is bumped with `chore: catalyst at kernel <x>` (`catalyst.toml`
   `kernel_version`), done through catalyst's sync commands, never by hand.
 
-### 7.3 Cutting a release (as practised; there is no script)
+### 7.3 Cutting a release (as practised; `task release:checklist` prints the steps)
 
 1. On `development`, from a **clean build** (§6.4) everything passes; push; wait for **CI** and **Standards** green.
 2. Open PR `development → main` titled `catalyst UI <version>` (e.g. #191); wait for CI + Standards on the PR; merge.
 3. Open PR `main → release` titled `catalyst UI <version>` (e.g. #192); wait; merge.
-4. Create the GitHub release on `release`: **tag `<version>` without `v`** (e.g. `0.69.0`), release name
-   `v<version>`: `gh release create 0.69.0 --target release --title v0.69.0 --notes …`.
+4. Create the GitHub release on `release`: **tag `<version>` without `v`** (e.g. `0.73.0`), release name
+   `v<version>`: `gh release create 0.73.0 --target release --title v0.73.0 --notes …`.
    Older tags (≤ 0.30.0) used `v<version>`; tooling accepts both.
 5. Publishing the release triggers the **Desktop** workflow, which builds macOS/Windows/Linux and attaches 11 files
    (`.dmg`/`.zip` ×2 mac, `.exe` ×3 win, `.AppImage`/`.deb` ×2 linux each) to the release. Verify:
@@ -987,10 +1017,12 @@ A release commit on `development` is a `chore:` titled like `chore: bump version
 6. Copy the `.vsix` to the distribution repo: `git fetch --tags` (local clones may lack recent tags), then
    `task release:vsix:publish PUBLISH_DIR=<cantica-tech/cantica-tech checkout>` — builds from the tag in a temp
    worktree, writes `catalyst/vsix/v<version>/{catalyst-host-vscode-v<version>.vsix, manifest.json}` and the
-   `catalyst/vsix/README.md` table, commits and **pushes** the distribution repo's `main`.
+   `catalyst/vsix/README.md` table, commits and **pushes** the distribution repo's `main`. Every release, not later
+   (0.70.0–0.73.0 each reached it the same day).
 7. **Marketplace only on explicit owner request**: `task publish:vscode-extension` (or
    `publish:vscode-extension:release` from a checkout of the exact tag, which also does step 6). `vsce` needs a
-   publisher login for `CanticaTech`. Never part of the routine cycle.
+   publisher login for `CanticaTech`. Never part of the routine cycle. The Marketplace listing stopped at **0.66.0**
+   (a 0.69.0 publish was refused as "already exists"); install current versions from the distribution repository.
 
 Verify the distribution copy: `cat <cantica-tech>/catalyst/vsix/v<version>/manifest.json` (`id`, `version`,
 `kernelVersion`, `vscode`, `file`).
@@ -1023,8 +1055,8 @@ sequenceDiagram
 
 | Workflow        | Trigger                                    | Jobs                                                                                                                                                                                                                                                                                                                                         |
 | --------------- | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ci.yml` (CI)   | every `pull_request`; push to `development` | **lint-typecheck-test** (ubuntu, Node 24): `npm ci`, `npm run lint`, `npm run format:check`, `npm run typecheck`, `npm test`. **catalyst-trace** (ubuntu, Python 3.11): clones the project's private criterion repository (branch from `catalyst.toml`) with secret `CRITERION_DEPLOY_KEY` into `$RUNNER_TEMP/catalyst/projects/<name>/criterion`, then `python3 <criterion>/bin/catalyst.pyz trace <range>` (PR base..head, push before..sha, or sha~1..sha): every commit must cite an artifact/rule ID or be `chore:`. |
-| `standards.yml` | every `pull_request`; push to `development` | Reuses `cantica-tech/standards/.github/workflows/lint.yml@v0.1.2` (`ref: v0.1.2`, `typecheck: false`): standards drift check + linters.                                                                                                                                                                                                     |
+| `ci.yml` (CI)   | every `pull_request`; push to `development`, `main`, `release` (since 0.70.0) | **lint-typecheck-test** (ubuntu, Node 24): `npm ci`, `npm run lint`, `npm run format:check`, `npm run typecheck`, `npm test`. **catalyst-trace** (ubuntu, Python 3.11): clones the project's private criterion repository (branch from `catalyst.toml`) with secret `CRITERION_DEPLOY_KEY` into `$RUNNER_TEMP/catalyst/projects/<name>/criterion`, then `python3 <criterion>/bin/catalyst.pyz trace <range>` (PR base..head, push before..sha, or sha~1..sha): every commit must cite an artifact/rule ID or be `chore:`. |
+| `standards.yml` | every `pull_request`; push to `development`, `main`, `release` (since 0.70.0) | Reuses `cantica-tech/standards/.github/workflows/lint.yml@v0.1.2` (`ref: v0.1.2`, `typecheck: false`): standards drift check + linters.                                                                                                                                                                                                     |
 | `desktop.yml`   | `release: published`; `workflow_dispatch`  | Matrix macOS/Windows/Ubuntu, environment `release`, Node 24, no npm cache: `npm ci`, `npx tsc --build`, `npm run build -w catalyst-studio`, `npm run bundle -w catalyst-host-electron`; downloads `catalyst.pyz` for `catalyst-version.txt` from `raw.githubusercontent.com/cantica-tech/cantica-tech/main/catalyst/kernel/v<ver>/catalyst.pyz` (checks the `#!` shebang); signing setup; `npx electron-builder --publish never`; Windows Azure Artifact Signing when `vars.AZURE_CLIENT_ID` is set; uploads to the release (`gh release upload --clobber`) or, for manual runs, as run artifacts `catalyst-studio-<os>`. |
 
 Secrets/variables (names only): `CRITERION_DEPLOY_KEY` (repo secret, read-only deploy key on the criterion repo);
@@ -1039,7 +1071,7 @@ What triggers which workflow:
 ```mermaid
 flowchart LR
   PR["pull_request"] --> CI["ci.yml"]
-  PUSH["push to development"] --> CI
+  PUSH["push to development, main or release"] --> CI
   PR --> STD["standards.yml"]
   PUSH --> STD
   REL["release published"] --> DSK["desktop.yml"]
@@ -1093,20 +1125,23 @@ Prerequisite: the kernel tag exists in a `cantica-tech/catalyst` checkout and it
 `cantica-tech/cantica-tech:catalyst/kernel/v<ver>/`.
 
 ```sh
-npm run spec:sync -w catalyst-core -- ../catalyst <tag>     # e.g. 0.119.2 — tag exactly as spec/KERNEL should read
+npm run spec:sync -w catalyst-core -- ../catalyst <tag>     # e.g. 0.121.0 — tag exactly as spec/KERNEL should read
 echo <ver> > packages/catalyst-host-electron/catalyst-version.txt
+# raise VERIFIED_KERNEL_VERSION in packages/catalyst-core/src/kernel-version.ts to <ver> (a test fails while it is older)
 npm test -w catalyst-core                                   # spec tests pass
 npm run typecheck && npm test                               # catch consumers of changed types
 ```
 
-Commit as `chore: spec/ and the desktop app at catalyst <ver>` (or a `fix(BUG-…)` if behaviour changes). This is the
-pending fix for the red CI at HEAD (`spec/KERNEL` 0.119.1 vs `catalyst-version.txt` 0.119.2).
+Commit as `chore: the desktop app ships kernel <ver>, the core's spec at <ver>` (or a `fix(BUG-…)` if behaviour
+changes). This is step 1 of `task release:checklist`.
 
 ### 8.4 Raise the verified kernel
 
-Edit `packages/catalyst-core/src/kernel-version.ts` (`VERIFIED_KERNEL_VERSION`, and `KERNEL_VERSION_FLOOR` if the
-floor moves) and `packages/catalyst-host-vscode/package.json` `catalyst.kernelVersion` to `>=<floor>`; run tests. This
-changes the sync offer and the release manifest's `kernelVersion`.
+Edit `packages/catalyst-core/src/kernel-version.ts` (`VERIFIED_KERNEL_VERSION` — since 0.70.0 always the paired
+kernel, §8.3 — and `KERNEL_VERSION_FLOOR` if the floor moves) and, when the floor moves,
+`packages/catalyst-host-vscode/package.json` `catalyst.kernelVersion` to `>=<floor>`; run tests. The verified kernel
+changes the sync offer and the version a UI module is checked against with no deployment open; the floor changes the
+release manifest's `kernelVersion`.
 
 ### 8.5 Leave a folder out of catalyst
 
@@ -1143,19 +1178,22 @@ line → `curl -H "Authorization: Bearer <token>" <url>/v1/graph | jq '.types | 
 | Desktop app launched from VS Code terminal behaves like Node                                            | `ELECTRON_RUN_AS_NODE` set by VS Code                                                                                                                         | `unset ELECTRON_RUN_AS_NODE`                                                                                                                                 |
 | Users panel: `catalyst-users (…) failed: catalyst-users was not found — check catalyst.iam.command`     | catalyst-users not on the editor's `PATH`                                                                                                                     | Set `catalyst.iam.command` to an absolute command (e.g. `uv run --project <catalyst-users checkout> catalyst-users`)                                         |
 | "did not answer JSON: is it catalyst-users 0.9.0 or later?" on login                                    | old catalyst-users                                                                                                                                            | Upgrade catalyst-users                                                                                                                                      |
+| A project shows "Run catalyst open" (0.71.0+)                                                           | its criterion is not on this machine                                                                                                                          | Accept: the extension runs `catalyst open` in the project; if it cannot ready it (no access to the criterion repository, say), the reason is shown         |
+| Close Bug / Reopen Bug greyed out (0.73.0+)                                                             | your roles do not grant `/status` in that criterion                                                                                                           | Grant it in catalyst-users (a role with `cmd:status`, or criterion admin), then Refresh                                                                     |
+| Close Bug refused with catalyst's reason                                                                | catalyst's guard (a bug's steps still open, say)                                                                                                              | Close the steps first; nothing was changed                                                                                                                 |
 | Users panel empty / provider errors                                                                     | identity provider (Keycloak) not running or not configured in `~/.catalyst/users`                                                                             | Start the provider; `catalyst-users --json whoami --system`                                                                                                 |
-| CI `npm test` fails: `expected '0.119.1' to be '0.119.2'` in `spec.test.ts`                             | `catalyst-version.txt` bumped without `spec:sync` (current state of `development`)                                                                            | §8.3                                                                                                                                                         |
+| CI `npm test` fails: `expected '<a>' to be '<b>'` in `spec.test.ts`, or the verified-kernel test fails  | `catalyst-version.txt` bumped without `spec:sync`, or `VERIFIED_KERNEL_VERSION` left older than it                                                            | §8.3 (`task release:checklist` step 1)                                                                                                                      |
 | CI fails although local checks pass                                                                     | stale `*.tsbuildinfo`/`dist` locally; or the Studio importing a runtime value from `catalyst-core`'s root (pulls `node:*` into the browser bundle)             | Clean build (§6.4); import runtime helpers only from `catalyst-core/graph-artifact`, types via `import type`                                                |
 | host-vscode mocha: "No test files found" on CI                                                          | historical: incremental `tsc --build` on the Linux runner emitted no `dist/test` (root cause unconfirmed, suspected mtime/incremental cache)                  | Fixed by `tsc --build --force` in that package's `build`; don't remove `--force`                                                                            |
 | `src/spec.ts is not what spec/ generates`                                                               | hand edit, or Prettier config changed                                                                                                                         | `npm run spec:generate -w catalyst-core`                                                                                                                    |
 | `spec.mjs`: `the keyword X is not supported`                                                            | a new kernel schema uses an unsupported JSON-Schema keyword                                                                                                   | Extend `scripts/spec.mjs` (as was done for `oneOf`)                                                                                                   |
-| `task lint` fails at `standards:lint` / task not found                                                 | no `../standards` checkout                                                                                                                                    | Clone `cantica-tech/standards` next to the repo or set `STANDARDS_DIR`; or run `npm run lint` only                                                          |
-| `release:vsix:publish`: "No release tag for 0.69.0"                                                     | local clone lacks the tag (tags are created on GitHub)                                                                                                        | `git fetch --tags`                                                                                                                                          |
+| `task lint` stops: the standards checkout is missing                                                    | no `../standards` checkout                                                                                                                                    | Clone `cantica-tech/standards` next to the repo or set `STANDARDS_DIR`; or run `npm run lint` only                                                          |
+| `release:vsix:publish`: "No release tag for <version>"                                                  | local clone lacks the tag (tags are created on GitHub)                                                                                                        | `git fetch --tags`                                                                                                                                          |
 | `publish:vscode-extension:release`: "HEAD is not an exact release tag"                                  | not checked out at the tag                                                                                                                                    | `git checkout <version>`                                                                                                                                    |
-| `code --install-extension` signature error                                                              | unsigned local build                                                                                                                                          | `task install:vscode-extension:unsigned` (and revert the setting later)                                                                                     |
+| `code --install-extension` signature error                                                              | unsigned local build                                                                                                                                          | `task install:vscode-extension:unsigned` (since 0.71.0 it restores the setting itself)                                                                      |
 | `task install:vscode-extension` cannot find `code`                                                      | `code` shim not installed (non-macOS fallback path absent)                                                                                                    | Install the shell command from VS Code's palette                                                                                                            |
 | A deployment shows a warning "working copy … is not reachable from a dev container"                     | legacy `.criterion` symlink into another machine's storage                                                                                                    | Copy the suggested mount or share the criterion (§8.6)                                                                                                      |
-| Saved UI module "not restored: …" in the output channel                                                 | module's `kernelVersion` specifier doesn't match the first deployment's kernel                                                                                | Harmless (module UI is not rendered); switch module or ignore                                                                                               |
+| Saved UI module "not restored: …" in the output channel                                                 | module's `kernelVersion` specifier doesn't match the first deployment's kernel (with no deployment open: the verified kernel since 0.71.0, the floor before)  | Harmless (module UI is not rendered); switch module or ignore                                                                                               |
 
 ---
 
@@ -1172,11 +1210,14 @@ gap phases G1–G4 from design `24` (writes through the host W1, inbox settling,
 read-side completion, approval gates, proposals, Try it, rule strength, analysis workspace, module administration,
 team WIP, Gantt, unread count, audit pack, embeds); R6.20 desktop packaging and the bundled CLI; R6.25 IAM
 administration and share panel (IAM forms later handed to catalyst-users); 0.65.0 admin forewarning (`try` then
-`--forewarned`); 0.67–0.69 catalyst-users login, Users panel, single-occurrence tree, "Instances" naming.
+`--forewarned`); 0.67–0.69 catalyst-users login, Users panel, single-occurrence tree, "Instances" naming; 0.70.0–0.71.0
+the paired kernel (0.120.0, then 0.121.0) with `VERIFIED_KERNEL_VERSION` kept level, Node 24, CI on all branches, "Run
+catalyst open" (REQ-000074), no ESLint suppressions, `task release:checklist`; 0.72.0 the Users panel's log-in/log-out
+button (REQ-000075), "Set Criterion Repo"; 0.73.0 Search Items (REQ-000076) and Close/Reopen Bug (REQ-000077).
 
 **Open / next:**
 
-1. **Fix CI on `development`**: `spec:sync` to 0.119.2 (§8.3) — CI is red since `1ec35eb`.
+1. ~~**Fix CI on `development`**: `spec:sync` to 0.119.2 (§8.3).~~ Done 2026-10-31 (`559e168`).
 2. **Studio editing (design `26`, decided 2026-10-25)**: a form editor generated from each type's definition;
    "New…" limited to types the person may create (from `catalyst identity whoami` and the modules' definitions);
    "Retire" instead of delete; non-admins edit/retire only unlinked entities they own, linked ones go through
@@ -1199,13 +1240,13 @@ administration and share panel (IAM forms later handed to catalyst-users); 0.65.
    (done in practice); a second module rendering with no UI change (knowledge-base does); "a newcomer finds why an
    artifact exists in under three minutes"; Problems panel equals `catalyst check`. Budgets from
    `ui-potential-roadmap` (15k tokens first session, 500 graph nodes at 16 ms, P95 < 200 ms) are targets to measure.
-7. **Housekeeping implied by this review** (not on any roadmap): refresh the root `README.md` (still lists four
-   packages, calls the desktop host unreleased) and the Marketplace `packages/catalyst-host-vscode/README.md` (still
-   advertises the removed "propose a fix" and authoring composer); refresh `catalyst-modules.md`'s header (as of
-   catalyst 0.36.0); `VERIFIED_KERNEL_VERSION` has stayed at 0.54.0 while the fleet runs 0.119.x; the legacy
-   `.criterion`/agent-storage code paths (`join-criterion.ts`, `configureCriterion`, onboarding's
-   "connect existing criterion repo") predate the `$HOME/.catalyst` criterion home; `.standards/VERSION` is v0.1.1
-   while CI runs standards v0.1.2.
+7. **Housekeeping implied by this review** (not on any roadmap): ~~refresh the root `README.md`, the Marketplace
+   README and `catalyst-modules.md`'s header~~ (done 2026-10-31); ~~`VERIFIED_KERNEL_VERSION` at 0.54.0~~ (kept level
+   with the paired kernel since 0.70.0); ~~the legacy `join-criterion.ts` and onboarding's "connect existing criterion
+   repo"~~ (removed in 0.71.0); `configureCriterion` stays, titled "Set Criterion Repo" (0.72.0); still open:
+   `.standards/VERSION` is v0.1.1 while CI runs standards v0.1.2.
+8. **The VS Code Marketplace** stopped at 0.66.0 (0.69.0 was refused as "already exists"); a publish is the owner's
+   call.
 
 ---
 
@@ -1213,24 +1254,29 @@ administration and share panel (IAM forms later handed to catalyst-users); 0.65.
 
 **Oddities / gotchas**
 
-- `development` HEAD (`1ec35eb`, "the desktop app ships kernel 0.119.2") is pushed and **CI fails** on the
-  `spec/KERNEL` = `catalyst-version.txt` test; the published 0.69.0 desktop build shipped kernel 0.119.1.
-- Release tags are bare versions (`0.69.0`) with release names `v0.69.0`; tags up to 0.30.0 were `v`-prefixed. A
+- ~~`development` HEAD (`1ec35eb`) is pushed and **CI fails** on the `spec/KERNEL` = `catalyst-version.txt` test.~~
+  Fixed 2026-10-31; a release now pairs `catalyst-version.txt`, `spec/KERNEL` and `VERIFIED_KERNEL_VERSION` (0.121.0).
+- Release tags are bare versions (`0.73.0`) with release names `v0.73.0`; tags up to 0.30.0 were `v`-prefixed. A
   local clone may hold only old tags → `git fetch --tags` before `release:vsix:publish`.
-- `.nvmrc` says 20; CI/Desktop use 24.
+- ~~`.nvmrc` says 20; CI/Desktop use 24.~~ Node 24 everywhere since 0.70.0.
 - The package named `catalyst-ui` is the VS Code detail-webview package, not the Studio; the repo is also called
   catalyst-ui.
 - `npm run lint` runs `tsc --build` first, so "lint" also emits build output.
 - `catalyst-host-vscode`'s `bundle` overwrites tsc's `dist/extension.js` with the esbuild bundle; `test` (via
   `pretest` → `build`) then rewrites the tsc version. Always package with `npm run package`, which runs build then bundle.
-- `install:vscode-extension:unsigned` changes your global VS Code setting `extensions.verifySignature` permanently.
-- The VS Code sync offer never fires for current kernels because `VERIFIED_KERNEL_VERSION` is 0.54.0.
+- ~~`install:vscode-extension:unsigned` changes your global VS Code setting `extensions.verifySignature`
+  permanently.~~ Since 0.71.0 it restores the previous value after the install.
+- ~~The VS Code sync offer never fires for current kernels because `VERIFIED_KERNEL_VERSION` is 0.54.0.~~ Fixed in
+  0.70.0/0.71.0 (BUG-000047): it is the paired kernel.
+- The command `catalyst.configureCriterion` keeps its ID though its title is "Set Criterion Repo…" (0.72.0).
+- Close Bug / Reopen Bug are shown only in trusted workspaces, and greyed out without the `/status` grant.
 - Module UI bundles are downloaded/held but never executed; modules render from their types only (C6).
 - The Electron main window is a separate, simpler UI (project list, counts, graph) than the Studio window.
 
 **Not verified in this review**
 
-- Running the VS Code extension or desktop app interactively; the extension-development-host and unpackaged
+- Running the VS Code extension or desktop app interactively (the 0.70.0–0.73.0 features included: Search Items,
+  Close/Reopen Bug, the log-in button and "Run catalyst open" were read from the code and README, not exercised); the extension-development-host and unpackaged
   `npx electron` invocations in §6.7/§6.8 are standard mechanisms, not documented in the repo.
 - Exact minimum catalyst-users versions for `users/roles/groups list|members|holders` (only 0.3.0 for whoami/token and
   0.9.0 for password login are stated in code).
@@ -1238,7 +1284,6 @@ administration and share panel (IAM forms later handed to catalyst-users); 0.65.
   it works in practice in the fleet, per the release log).
 - How `standards:lint`'s external tools (actionlint, zizmor, yamllint, markdownlint) are installed — see the
   standards chapter.
-- Whether the 0.69.0 Marketplace listing matches the GitHub release (Marketplace publication is on owner request only
-  and was not checked).
+- The Marketplace listing (0.66.0, per the release round of 2026-11-01) was not re-checked here.
 - The only test run in this review was `vitest run src/test/spec.test.ts` in `catalyst-core` (3 passed, 1 failed as
   described) and `node scripts/spec.mjs check` (passes); no full build or packaging was run.
